@@ -1,0 +1,235 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/use-toast'
+
+interface ListWithCounts {
+  id: string
+  name: string
+  description: string | null
+  createdAt: string
+  total: number
+  active: number
+  bounced: number
+  unsubscribed: number
+}
+
+export default function ListsPage() {
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const [lists, setLists] = useState<ListWithCounts[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function fetchLists() {
+    try {
+      const res = await fetch('/api/internal/lists')
+      if (!res.ok) throw new Error('Failed to fetch lists')
+      const data = await res.json()
+      setLists(data)
+    } catch {
+      toast({ title: 'Error', description: 'Could not load lists.', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLists()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newName.trim()) return
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/internal/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName.trim(), description: newDescription.trim() || undefined }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error || 'Failed to create list')
+      }
+      toast({ title: 'List created', description: `"${newName.trim()}" has been created.` })
+      setNewName('')
+      setNewDescription('')
+      setDialogOpen(false)
+      await fetchLists()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create list.'
+      toast({ title: 'Error', description: message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/internal/lists/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error || 'Failed to delete list')
+      }
+      toast({ title: 'List deleted', description: `"${name}" has been deleted.` })
+      await fetchLists()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete list.'
+      toast({ title: 'Error', description: message, variant: 'destructive' })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Lists</h1>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>New List</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create a new list</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreate} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="list-name">Name</Label>
+                <Input
+                  id="list-name"
+                  placeholder="e.g. Newsletter subscribers"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  required
+                  disabled={submitting}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="list-description">Description (optional)</Label>
+                <Input
+                  id="list-description"
+                  placeholder="A short description of this list"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  disabled={submitting}
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting || !newName.trim()}>
+                  {submitting ? 'Creating...' : 'Create'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {loading ? (
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      ) : lists.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            No lists yet. Create your first list.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>List Name</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Active</TableHead>
+                <TableHead className="text-right">Bounced</TableHead>
+                <TableHead className="text-right">Unsubscribed</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lists.map((list) => (
+                <TableRow key={list.id}>
+                  <TableCell>
+                    <button
+                      className="font-medium text-left hover:underline focus:outline-none focus-visible:underline"
+                      onClick={() => router.push(`/lists/${list.id}`)}
+                    >
+                      {list.name}
+                    </button>
+                    {list.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{list.description}</p>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="secondary">{list.total ?? 0}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm text-green-600 font-medium">{list.active ?? 0}</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm text-red-500 font-medium">{list.bounced ?? 0}</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm text-yellow-600 font-medium">{list.unsubscribed ?? 0}</span>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {format(new Date(list.createdAt), 'MMM d, yyyy')}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deletingId === list.id}
+                      onClick={() => handleDelete(list.id, list.name)}
+                    >
+                      {deletingId === list.id ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  )
+}

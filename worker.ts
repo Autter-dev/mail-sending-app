@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import { PgBoss } from 'pg-boss'
 import { db } from './lib/db'
 import { campaigns, campaignSends, contacts, emailProviders } from './lib/db/schema'
