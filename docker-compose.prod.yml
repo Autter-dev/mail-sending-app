@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  migrate:
+    build: .
+    command: node -r tsx/cjs lib/db/migrate.ts
+    env_file: .env
+    restart: "no"
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: node -r tsx/cjs worker.ts
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
