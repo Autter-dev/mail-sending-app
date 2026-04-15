@@ -9,6 +9,15 @@ export async function getQueue(): Promise<PgBoss> {
       max: 10,
     })
     await boss.start()
+    // Create queues if they don't exist (required in pg-boss v12+)
+    for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN]) {
+      try {
+        await boss.createQueue(queue)
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : ''
+        if (!msg.includes('already exists')) throw e
+      }
+    }
   }
   return boss
 }

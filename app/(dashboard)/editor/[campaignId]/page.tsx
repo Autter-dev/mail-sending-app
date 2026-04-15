@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
 import { BlockEditor } from "@/components/editor/BlockEditor"
+import { HtmlEditor } from "@/components/editor/HtmlEditor"
 import type { Block } from "@/lib/db/schema"
+
+type EditorMode = "visual" | "code"
 
 interface Campaign {
   id: string
@@ -27,6 +30,7 @@ interface Campaign {
   listId: string
   providerId: string | null
   templateJson: Block[]
+  templateHtml: string | null
   status: string
 }
 
@@ -40,12 +44,16 @@ export default function EditorPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // Editor mode
+  const [editorMode, setEditorMode] = useState<EditorMode>("visual")
+
   // Editable fields
   const [name, setName] = useState("")
   const [subject, setSubject] = useState("")
   const [fromName, setFromName] = useState("")
   const [fromEmail, setFromEmail] = useState("")
   const [blocks, setBlocks] = useState<Block[]>([])
+  const [templateHtml, setTemplateHtml] = useState("")
 
   // Test send
   const [testDialogOpen, setTestDialogOpen] = useState(false)
@@ -53,7 +61,7 @@ export default function EditorPage() {
   const [sendingTest, setSendingTest] = useState(false)
 
   // Merge tags
-  const mergeTags = ["{{email}}", "{{first_name}}", "{{last_name}}"]
+  const [mergeTags, setMergeTags] = useState<{ tag: string; description: string }[]>([])
 
   // Auto-save timer
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -74,6 +82,11 @@ export default function EditorPage() {
       setFromName(data.fromName || "")
       setFromEmail(data.fromEmail || "")
       setBlocks(data.templateJson || [])
+      setTemplateHtml(data.templateHtml || "")
+      // If campaign has custom HTML but no blocks, default to code mode
+      if (data.templateHtml && (!data.templateJson || data.templateJson.length === 0)) {
+        setEditorMode("code")
+      }
     } catch {
       toast({ title: "Error", description: "Failed to load campaign", variant: "destructive" })
     } finally {
@@ -84,6 +97,20 @@ export default function EditorPage() {
   useEffect(() => {
     fetchCampaign()
   }, [fetchCampaign])
+
+  // Fetch merge tags when campaign loads
+  useEffect(() => {
+    if (!campaign?.listId) return
+    async function fetchMergeTags() {
+      try {
+        const res = await fetch(`/api/internal/lists/${campaign!.listId}/merge-tags`)
+        if (res.ok) setMergeTags(await res.json())
+      } catch {
+        // fall back to empty
+      }
+    }
+    fetchMergeTags()
+  }, [campaign?.listId])
 
   const saveDraft = useCallback(async () => {
     if (!campaign) return
@@ -97,7 +124,8 @@ export default function EditorPage() {
           subject,
           fromName,
           fromEmail,
-          templateJson: blocks,
+          templateJson: editorMode === "visual" ? blocks : [],
+          templateHtml: editorMode === "code" ? templateHtml : null,
         }),
       })
       if (!res.ok) throw new Error("Save failed")
@@ -108,7 +136,7 @@ export default function EditorPage() {
     } finally {
       setSaving(false)
     }
-  }, [campaign, campaignId, name, subject, fromName, fromEmail, blocks, toast])
+  }, [campaign, campaignId, name, subject, fromName, fromEmail, blocks, templateHtml, editorMode, toast])
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -128,7 +156,7 @@ export default function EditorPage() {
     if (campaign) {
       hasChangesRef.current = true
     }
-  }, [name, subject, fromName, fromEmail, blocks, campaign])
+  }, [name, subject, fromName, fromEmail, blocks, templateHtml, campaign])
 
   const handleTestSend = async () => {
     if (!testEmail) return
@@ -232,8 +260,30 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* Subject and From fields */}
-        <div className="grid grid-cols-3 gap-3 mt-3">
+        {/* Editor mode toggle + Subject and From fields */}
+        <div className="flex items-center gap-1 mt-3 mb-2">
+          <button
+            onClick={() => setEditorMode("visual")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              editorMode === "visual"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            Visual Editor
+          </button>
+          <button
+            onClick={() => setEditorMode("code")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              editorMode === "code"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            HTML Code
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Subject Line</Label>
             <Input
@@ -264,24 +314,33 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {/* Block Editor */}
+      {/* Editor Area */}
       <div className="flex-1 overflow-hidden">
-        <BlockEditor blocks={blocks} onChange={setBlocks} />
+        {editorMode === "visual" ? (
+          <BlockEditor blocks={blocks} onChange={setBlocks} />
+        ) : (
+          <HtmlEditor html={templateHtml} onChange={setTemplateHtml} />
+        )}
       </div>
 
       {/* Bottom Bar: Merge Tags */}
       <div className="border-t bg-white px-4 py-2 shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground shrink-0">Merge tags:</span>
-          {mergeTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => copyMergeTag(tag)}
-              className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded font-mono transition-colors"
-            >
-              {tag}
-            </button>
-          ))}
+          {mergeTags.length === 0 ? (
+            <span className="text-xs text-muted-foreground">Loading...</span>
+          ) : (
+            mergeTags.map((item) => (
+              <button
+                key={item.tag}
+                onClick={() => copyMergeTag(item.tag)}
+                title={item.description}
+                className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded font-mono transition-colors"
+              >
+                {item.tag}
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>

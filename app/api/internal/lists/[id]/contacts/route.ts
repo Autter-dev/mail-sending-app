@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { contacts } from '@/lib/db/schema'
 import { eq, ilike, and, count, SQL } from 'drizzle-orm'
+import { createContactSchema } from '@/lib/validations/contacts'
 
 export async function GET(
   req: NextRequest,
@@ -46,4 +47,43 @@ export async function GET(
     data,
     meta: { page, limit, total },
   })
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const parsed = createContactSchema.safeParse(body)
+  if (!parsed.success) {
+    const message = parsed.error.errors.map((e) => e.message).join(', ')
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+
+  try {
+    const [created] = await db
+      .insert(contacts)
+      .values({
+        listId: params.id,
+        email: parsed.data.email,
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+        metadata: parsed.data.metadata ?? {},
+      })
+      .returning()
+
+    return NextResponse.json(created, { status: 201 })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : ''
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      return NextResponse.json({ error: 'A contact with this email already exists in this list' }, { status: 409 })
+    }
+    throw e
+  }
 }

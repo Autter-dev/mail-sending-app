@@ -32,10 +32,12 @@ export function renderTemplate(options: {
   sendId: string
   appUrl: string
   unsubscribeUrl: string
+  rawHtml?: string | null
 }): string {
-  const { blocks, contact, sendId, appUrl, unsubscribeUrl } = options
+  const { blocks, contact, sendId, appUrl, unsubscribeUrl, rawHtml } = options
 
-  const bodyHtml = renderBlocks(blocks)
+  // If raw HTML is provided and blocks are empty, use raw HTML directly
+  const bodyHtml = rawHtml && blocks.length === 0 ? rawHtml : renderBlocks(blocks)
 
   const template = Handlebars.compile(bodyHtml)
   const merged = template(contact)

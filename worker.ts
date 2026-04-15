@@ -35,6 +35,7 @@ async function processSendJob(sendId: string, campaignId: string) {
     email: contact.email,
     first_name: contact.firstName || '',
     last_name: contact.lastName || '',
+    unsubscribe_url: `${APP_URL}/unsubscribe/${contact.unsubscribeToken}`,
     ...(contact.metadata as Record<string, string>),
   }
 
@@ -44,6 +45,7 @@ async function processSendJob(sendId: string, campaignId: string) {
     sendId: send.id,
     appUrl: APP_URL,
     unsubscribeUrl: `${APP_URL}/unsubscribe/${contact.unsubscribeToken}`,
+    rawHtml: campaign.templateHtml,
   })
 
   const { messageId } = await adapter.send({
@@ -75,6 +77,17 @@ async function main() {
 
   await boss.start()
   console.log('pg-boss started.')
+
+  // Create queues if they don't exist (required in pg-boss v12+)
+  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN]) {
+    try {
+      await boss.createQueue(queue)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      if (!msg.includes('already exists')) throw e
+    }
+  }
+  console.log('Queues ready.')
 
   // Process individual email send jobs
   await boss.work<{ sendId: string; campaignId: string }>(

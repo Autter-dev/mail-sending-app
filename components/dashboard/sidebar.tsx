@@ -10,7 +10,7 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/' },
+  { label: 'Dashboard', href: '/dashboard' },
   { label: 'Lists', href: '/lists' },
   { label: 'Campaigns', href: '/campaigns' },
 ]
@@ -22,9 +22,7 @@ const settingsNavItems: NavItem[] = [
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const isActive =
-    item.href === '/'
-      ? pathname === '/'
-      : pathname === item.href || pathname.startsWith(item.href + '/')
+    pathname === item.href || pathname.startsWith(item.href + '/')
 
   return (
     <Link

@@ -60,10 +60,11 @@ export async function POST(
 
     const html = renderTemplate({
       blocks: campaign.templateJson,
-      contact: { email: toEmail, first_name: 'Test', last_name: 'User' },
+      contact: { email: toEmail, first_name: 'Test', last_name: 'User', unsubscribe_url: '#' },
       sendId: 'test-' + Date.now(),
       appUrl: process.env.APP_URL!,
       unsubscribeUrl: '#',
+      rawHtml: campaign.templateHtml,
     })
 
     await adapter.send({

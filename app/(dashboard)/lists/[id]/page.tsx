@@ -13,8 +13,18 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/use-toast'
 
 interface ListInfo {
   id: string
@@ -65,6 +75,48 @@ export default function ListDetailPage() {
   const [page, setPage] = useState(1)
 
   const [exporting, setExporting] = useState(false)
+
+  const [addOpen, setAddOpen] = useState(false)
+  const [addEmail, setAddEmail] = useState('')
+  const [addFirstName, setAddFirstName] = useState('')
+  const [addLastName, setAddLastName] = useState('')
+  const [addSaving, setAddSaving] = useState(false)
+  const { toast } = useToast()
+
+  async function handleAddContact(e: React.FormEvent) {
+    e.preventDefault()
+    if (!addEmail.trim()) return
+    setAddSaving(true)
+    try {
+      const res = await fetch(`/api/internal/lists/${listId}/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: addEmail.trim(),
+          firstName: addFirstName.trim() || undefined,
+          lastName: addLastName.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        toast({ title: data.error || 'Failed to add contact', variant: 'destructive' })
+        return
+      }
+      toast({ title: 'Contact added' })
+      setAddOpen(false)
+      setAddEmail('')
+      setAddFirstName('')
+      setAddLastName('')
+      fetchContacts()
+      // Refresh list info to update counts
+      const listRes = await fetch(`/api/internal/lists/${listId}`)
+      if (listRes.ok) setListInfo(await listRes.json())
+    } catch {
+      toast({ title: 'Failed to add contact', variant: 'destructive' })
+    } finally {
+      setAddSaving(false)
+    }
+  }
 
   // Fetch list info
   useEffect(() => {
@@ -209,6 +261,54 @@ export default function ListDetailPage() {
           <Button variant="outline" onClick={handleExport} disabled={exporting}>
             {exporting ? 'Exporting...' : 'Export CSV'}
           </Button>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Add Contact</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Contact</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddContact} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="add-email">Email *</Label>
+                  <Input
+                    id="add-email"
+                    type="email"
+                    placeholder="john@example.com"
+                    value={addEmail}
+                    onChange={(e) => setAddEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="add-first-name">First Name</Label>
+                    <Input
+                      id="add-first-name"
+                      placeholder="John"
+                      value={addFirstName}
+                      onChange={(e) => setAddFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="add-last-name">Last Name</Label>
+                    <Input
+                      id="add-last-name"
+                      placeholder="Doe"
+                      value={addLastName}
+                      onChange={(e) => setAddLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={addSaving || !addEmail.trim()}>
+                    {addSaving ? 'Adding...' : 'Add Contact'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
           <Button asChild>
             <Link href={`/lists/${listId}/upload`}>Upload Contacts</Link>
           </Button>

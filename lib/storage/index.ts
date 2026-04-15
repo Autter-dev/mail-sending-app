@@ -27,6 +27,15 @@ export async function getPresignedUrl(key: string, expiresIn = 3600) {
   return getSignedUrl(client, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn })
 }
 
+export async function getFile(key: string) {
+  const response = await client.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+  return {
+    body: response.Body,
+    contentType: response.ContentType || 'application/octet-stream',
+    contentLength: response.ContentLength,
+  }
+}
+
 export async function deleteFile(key: string) {
   await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
 }
