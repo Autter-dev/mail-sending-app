@@ -17,9 +17,22 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { BlockEditor } from "@/components/editor/BlockEditor"
 import { HtmlEditor } from "@/components/editor/HtmlEditor"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { Block } from "@/lib/db/schema"
 
 type EditorMode = "visual" | "code"
+
+interface Provider {
+  id: string
+  name: string
+  type: string
+}
 
 interface Campaign {
   id: string
@@ -52,8 +65,12 @@ export default function EditorPage() {
   const [subject, setSubject] = useState("")
   const [fromName, setFromName] = useState("")
   const [fromEmail, setFromEmail] = useState("")
+  const [providerId, setProviderId] = useState<string | null>(null)
   const [blocks, setBlocks] = useState<Block[]>([])
   const [templateHtml, setTemplateHtml] = useState("")
+
+  // Providers
+  const [providers, setProviders] = useState<Provider[]>([])
 
   // Test send
   const [testDialogOpen, setTestDialogOpen] = useState(false)
@@ -81,6 +98,7 @@ export default function EditorPage() {
       setSubject(data.subject || "")
       setFromName(data.fromName || "")
       setFromEmail(data.fromEmail || "")
+      setProviderId(data.providerId || null)
       setBlocks(data.templateJson || [])
       setTemplateHtml(data.templateHtml || "")
       // If campaign has custom HTML but no blocks, default to code mode
@@ -112,6 +130,19 @@ export default function EditorPage() {
     fetchMergeTags()
   }, [campaign?.listId])
 
+  // Fetch providers
+  useEffect(() => {
+    async function fetchProviders() {
+      try {
+        const res = await fetch("/api/internal/providers")
+        if (res.ok) setProviders(await res.json())
+      } catch {
+        // fall back to empty
+      }
+    }
+    fetchProviders()
+  }, [])
+
   const saveDraft = useCallback(async () => {
     if (!campaign) return
     setSaving(true)
@@ -124,8 +155,9 @@ export default function EditorPage() {
           subject,
           fromName,
           fromEmail,
-          templateJson: editorMode === "visual" ? blocks : [],
-          templateHtml: editorMode === "code" ? templateHtml : null,
+          providerId,
+          templateJson: blocks,
+          templateHtml: templateHtml || null,
         }),
       })
       if (!res.ok) throw new Error("Save failed")
@@ -136,7 +168,7 @@ export default function EditorPage() {
     } finally {
       setSaving(false)
     }
-  }, [campaign, campaignId, name, subject, fromName, fromEmail, blocks, templateHtml, editorMode, toast])
+  }, [campaign, campaignId, name, subject, fromName, fromEmail, providerId, blocks, templateHtml, editorMode, toast])
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -156,7 +188,7 @@ export default function EditorPage() {
     if (campaign) {
       hasChangesRef.current = true
     }
-  }, [name, subject, fromName, fromEmail, blocks, templateHtml, campaign])
+  }, [name, subject, fromName, fromEmail, providerId, blocks, templateHtml, campaign])
 
   const handleTestSend = async () => {
     if (!testEmail) return
@@ -283,7 +315,7 @@ export default function EditorPage() {
             HTML Code
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Subject Line</Label>
             <Input
@@ -310,6 +342,24 @@ export default function EditorPage() {
               placeholder="you@example.com"
               className="h-8 text-sm"
             />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Email Provider</Label>
+            <Select
+              value={providerId || ""}
+              onValueChange={(val) => setProviderId(val || null)}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Select provider" />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} ({p.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

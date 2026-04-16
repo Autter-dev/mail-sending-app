@@ -36,9 +36,17 @@ export function renderTemplate(options: {
 }): string {
   const { blocks, contact, sendId, appUrl, unsubscribeUrl, rawHtml } = options
 
-  // If raw HTML is provided and blocks are empty, use raw HTML directly
-  const bodyHtml = rawHtml && blocks.length === 0 ? rawHtml : renderBlocks(blocks)
+  // Prefer visual blocks if they exist, fall back to raw HTML from code editor
+  let bodyHtml: string
+  if (blocks.length > 0) {
+    bodyHtml = renderBlocks(blocks)
+  } else if (rawHtml && rawHtml.trim().length > 0) {
+    bodyHtml = rawHtml
+  } else {
+    bodyHtml = ''
+  }
 
+  // Replace Handlebars merge tags (e.g. {{first_name}}, {{unsubscribe_url}})
   const template = Handlebars.compile(bodyHtml)
   const merged = template(contact)
 
@@ -70,11 +78,14 @@ export function renderTemplate(options: {
 }
 
 function wrapLinks(html: string, sendId: string, appUrl: string): string {
-  return html.replace(
-    /href="((?!APP_URL\/r\/|APP_URL\/unsubscribe\/)[^"]+)"/g,
-    (_, url) => {
-      const encoded = Buffer.from(JSON.stringify({ sendId, url })).toString('base64url')
-      return `href="${appUrl}/r/${encoded}"`
-    }
+  // Escape special regex characters in the appUrl
+  const escapedAppUrl = appUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(
+    `href="((?!${escapedAppUrl}/r/|${escapedAppUrl}/unsubscribe/|#)[^"]+)"`,
+    'g'
   )
+  return html.replace(pattern, (_, url) => {
+    const encoded = Buffer.from(JSON.stringify({ sendId, url })).toString('base64url')
+    return `href="${appUrl}/r/${encoded}"`
+  })
 }

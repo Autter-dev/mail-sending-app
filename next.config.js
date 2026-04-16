@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   experimental: {
-    serverComponentsExternalPackages: ['pg', 'pg-boss'],
+    serverComponentsExternalPackages: ['pg', 'pg-boss', 'pino', 'pino-pretty'],
   },
 }
 

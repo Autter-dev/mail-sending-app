@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { campaigns, lists } from '@/lib/db/schema'
+import { campaigns, lists, emailProviders } from '@/lib/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -56,9 +56,21 @@ export async function POST(req: NextRequest) {
 
   const { name, listId } = parsed.data
 
+  // Auto-assign the default provider if one exists
+  const [defaultProvider] = await db
+    .select({ id: emailProviders.id })
+    .from(emailProviders)
+    .where(eq(emailProviders.isDefault, true))
+    .limit(1)
+
   const [created] = await db
     .insert(campaigns)
-    .values({ name, listId, status: 'draft' })
+    .values({
+      name,
+      listId,
+      status: 'draft',
+      providerId: defaultProvider?.id ?? null,
+    })
     .returning()
 
   return NextResponse.json(created, { status: 201 })
