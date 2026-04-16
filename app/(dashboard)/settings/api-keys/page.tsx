@@ -112,7 +112,7 @@ export default function ApiKeysPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">API Keys</h1>
+          <h1 className="text-2xl font-bold font-heading">API Keys</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage API keys for programmatic access.
           </p>
@@ -184,7 +184,7 @@ export default function ApiKeysPage() {
       </div>
 
       {keys.length === 0 ? (
-        <div className="border rounded-lg p-8 text-center text-muted-foreground">
+        <div className="border rounded-xl p-8 text-center text-muted-foreground">
           No API keys yet. Create one to get started.
         </div>
       ) : (
@@ -209,7 +209,7 @@ export default function ApiKeysPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-600 hover:text-red-700"
+                    className="text-destructive hover:text-destructive/80"
                     onClick={() => setDeleteId(key.id)}
                   >
                     Delete

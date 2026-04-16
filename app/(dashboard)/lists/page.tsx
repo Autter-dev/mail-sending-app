@@ -114,7 +114,7 @@ export default function ListsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Lists</h1>
+        <h1 className="text-2xl font-bold font-heading">Lists</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>New List</Button>
@@ -166,13 +166,16 @@ export default function ListsPage() {
       {loading ? (
         <div className="text-sm text-muted-foreground">Loading...</div>
       ) : lists.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-10 text-center">
+        <div className="rounded-xl border border-dashed p-10 text-center">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+          </div>
           <p className="text-sm text-muted-foreground">
-            No lists yet. Create your first list.
+            No lists yet. Create your first list to start collecting contacts.
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -190,7 +193,7 @@ export default function ListsPage() {
                 <TableRow key={list.id}>
                   <TableCell>
                     <button
-                      className="font-medium text-left hover:underline focus:outline-none focus-visible:underline"
+                      className="font-medium text-left hover:text-primary transition-colors focus:outline-none"
                       onClick={() => router.push(`/lists/${list.id}`)}
                     >
                       {list.name}
@@ -203,13 +206,13 @@ export default function ListsPage() {
                     <Badge variant="secondary">{list.total ?? 0}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="text-sm text-green-600 font-medium">{list.active ?? 0}</span>
+                    <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{list.active ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="text-sm text-red-500 font-medium">{list.bounced ?? 0}</span>
+                    <span className="text-sm text-red-600 dark:text-red-400 font-medium">{list.bounced ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="text-sm text-yellow-600 font-medium">{list.unsubscribed ?? 0}</span>
+                    <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">{list.unsubscribed ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(list.createdAt), 'MMM d, yyyy')}

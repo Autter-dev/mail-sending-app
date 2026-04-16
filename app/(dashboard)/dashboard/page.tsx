@@ -35,13 +35,20 @@ interface Campaign {
   listName: string | null
 }
 
-const STATUS_VARIANT: Record<string, string> = {
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info"> = {
   draft: "secondary",
-  scheduled: "outline",
-  sending: "default",
-  sent: "default",
+  scheduled: "warning",
+  sending: "info",
+  sent: "success",
   failed: "destructive",
 }
+
+const STAT_ICONS = [
+  <svg key="lists" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+  <svg key="contacts" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>,
+  <svg key="sent" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" /><polyline points="22,6 12,13 2,6" /></svg>,
+  <svg key="rate" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>,
+]
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -96,63 +103,45 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-28" />
+            <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     )
   }
 
+  const statCards = [
+    { label: "Total Lists", value: stats?.totalLists ?? 0 },
+    { label: "Total Contacts", value: stats?.totalContacts ?? 0 },
+    { label: "Campaigns Sent", value: stats?.totalSent ?? 0 },
+    { label: "Avg Open Rate", value: `${stats?.avgOpenRate?.toFixed(1) ?? "0.0"}%` },
+  ]
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-bold font-heading">Dashboard</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Lists
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats?.totalLists ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Contacts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats?.totalContacts ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Campaigns Sent
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats?.totalSent ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg Open Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">
-              {stats?.avgOpenRate?.toFixed(1) ?? "0.0"}%
-            </p>
-          </CardContent>
-        </Card>
+        {statCards.map((stat, i) => (
+          <Card key={stat.label}>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-bold font-heading mt-1">{stat.value}</p>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  {STAT_ICONS[i]}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="flex gap-3">
@@ -166,13 +155,18 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Campaigns</CardTitle>
+          <CardTitle className="text-lg">Recent Campaigns</CardTitle>
         </CardHeader>
         <CardContent>
           {campaigns.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No campaigns yet. Create one to get started.
-            </p>
+            <div className="text-center py-8">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" /><polyline points="22,6 12,13 2,6" /></svg>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                No campaigns yet. Create one to get started.
+              </p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -191,22 +185,14 @@ export default function DashboardPage() {
                     <TableCell>
                       <Link
                         href={`/campaigns/${c.id}`}
-                        className="font-medium hover:underline"
+                        className="font-medium hover:text-primary transition-colors"
                       >
                         {c.name}
                       </Link>
                     </TableCell>
-                    <TableCell>{c.listName || "-"}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.listName || "-"}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          (STATUS_VARIANT[c.status] as
-                            | "default"
-                            | "secondary"
-                            | "outline"
-                            | "destructive") || "secondary"
-                        }
-                      >
+                      <Badge variant={STATUS_VARIANT[c.status] || "secondary"}>
                         {c.status}
                       </Badge>
                     </TableCell>
@@ -216,7 +202,7 @@ export default function DashboardPage() {
                         ? `${((c.opens / c.sent) * 100).toFixed(1)}%`
                         : "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground">
                       {c.sentAt
                         ? format(new Date(c.sentAt), "MMM d, yyyy")
                         : "-"}

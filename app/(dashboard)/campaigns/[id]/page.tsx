@@ -36,9 +36,9 @@ interface Campaign {
 
 const STATUS_BADGE: Record<string, string> = {
   draft: 'secondary',
-  scheduled: 'outline',
-  sending: 'default',
-  sent: 'default',
+  scheduled: 'warning',
+  sending: 'info',
+  sent: 'success',
   failed: 'destructive',
 }
 
@@ -56,6 +56,9 @@ function StatusBadge({ status }: { status: string }) {
     | 'secondary'
     | 'destructive'
     | 'outline'
+    | 'success'
+    | 'warning'
+    | 'info'
   return <Badge variant={variant}>{STATUS_LABEL[status] ?? status}</Badge>
 }
 
@@ -179,10 +182,10 @@ export default function CampaignDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/campaigns" className="text-sm text-muted-foreground hover:underline">
+          <Link href="/campaigns" className="text-sm text-muted-foreground hover:text-primary transition-colors">
             Campaigns
           </Link>
-          <h1 className="text-2xl font-bold mt-1">{campaign.name}</h1>
+          <h1 className="text-2xl font-bold font-heading mt-1">{campaign.name}</h1>
         </div>
         <StatusBadge status={campaign.status} />
       </div>

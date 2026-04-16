@@ -16,6 +16,11 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        heading: ["var(--font-heading)", "sans-serif"],
+        body: ["var(--font-body)", "sans-serif"],
+        sans: ["var(--font-body)", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -50,11 +55,23 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          active: "hsl(var(--sidebar-active))",
+          "active-foreground": "hsl(var(--sidebar-active-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        warm: "0 1px 3px 0 rgba(120, 80, 40, 0.06), 0 1px 2px -1px rgba(120, 80, 40, 0.06)",
+        "warm-md": "0 4px 6px -1px rgba(120, 80, 40, 0.07), 0 2px 4px -2px rgba(120, 80, 40, 0.05)",
+        "warm-lg": "0 10px 15px -3px rgba(120, 80, 40, 0.07), 0 4px 6px -4px rgba(120, 80, 40, 0.05)",
       },
       keyframes: {
         "accordion-down": {

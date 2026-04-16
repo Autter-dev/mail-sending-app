@@ -171,18 +171,18 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left panel: block type picker */}
-      <div className="w-48 shrink-0 border-r bg-white overflow-y-auto flex flex-col">
+      <div className="w-48 shrink-0 border-r bg-card overflow-y-auto flex flex-col">
         <div className="px-3 py-3 border-b">
-          <p className="text-sm font-semibold text-slate-700">Blocks</p>
+          <p className="text-sm font-semibold text-foreground">Blocks</p>
         </div>
         <div className="p-2 flex flex-col gap-1">
           {BLOCK_TYPES.map((meta) => (
             <button
               key={meta.type}
               onClick={() => addBlock(meta)}
-              className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors text-left"
+              className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors text-left"
             >
-              <span className="text-slate-500">{meta.icon}</span>
+              <span className="text-muted-foreground">{meta.icon}</span>
               {meta.label}
             </button>
           ))}
@@ -190,15 +190,15 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
       </div>
 
       {/* Center panel: preview */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+      <div className="flex-1 flex flex-col overflow-hidden bg-muted/50">
         <div className="px-4 py-3 border-b bg-white flex items-center justify-center">
-          <p className="text-sm text-slate-500">Click a block to select it. Drag to reorder.</p>
+          <p className="text-sm text-muted-foreground">Click a block to select it. Drag to reorder.</p>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-[600px] mx-auto bg-white shadow rounded-lg p-8 min-h-[400px]">
+          <div className="max-w-[600px] mx-auto bg-card shadow-warm rounded-xl p-8 min-h-[400px]">
             {blocks.length === 0 ? (
-              <div className="flex items-center justify-center h-64 border-2 border-dashed border-slate-200 rounded-lg">
-                <p className="text-slate-400 text-sm">Add blocks from the left panel to start building your email.</p>
+              <div className="flex items-center justify-center h-64 border-2 border-dashed border-border rounded-lg">
+                <p className="text-muted-foreground text-sm">Add blocks from the left panel to start building your email.</p>
               </div>
             ) : (
               <DragDropContext onDragEnd={onDragEnd}>
@@ -219,8 +219,8 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                               className={[
                                 'group relative rounded transition-all cursor-pointer',
                                 selectedId === block.id
-                                  ? 'ring-2 ring-blue-500 ring-offset-1'
-                                  : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-1',
+                                  ? 'ring-2 ring-primary ring-offset-1'
+                                  : 'hover:ring-2 hover:ring-border hover:ring-offset-1',
                                 snapshot.isDragging ? 'shadow-lg opacity-90' : '',
                               ]
                                 .filter(Boolean)
@@ -229,7 +229,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                               {/* Drag handle */}
                               <div
                                 {...draggableProvided.dragHandleProps}
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-slate-400"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-muted-foreground"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <GripVertical className="h-4 w-4" />
@@ -237,7 +237,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
 
                               {/* Delete button */}
                               <button
-                                className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded p-0.5 bg-white shadow-sm border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-300"
+                                className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded p-0.5 bg-card shadow-sm border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   removeBlock(block.id)
@@ -267,13 +267,13 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
       </div>
 
       {/* Right panel: properties */}
-      <div className="w-72 shrink-0 border-l bg-white overflow-y-auto flex flex-col">
+      <div className="w-72 shrink-0 border-l bg-card overflow-y-auto flex flex-col">
         <div className="px-4 py-3 border-b">
-          <p className="text-sm font-semibold text-slate-700">Properties</p>
+          <p className="text-sm font-semibold text-foreground">Properties</p>
         </div>
         <div className="p-4">
           {selectedBlock === null ? (
-            <p className="text-sm text-slate-400">Select a block to edit its properties.</p>
+            <p className="text-sm text-muted-foreground">Select a block to edit its properties.</p>
           ) : (
             <BlockPropertyEditor
               key={selectedBlock.id}

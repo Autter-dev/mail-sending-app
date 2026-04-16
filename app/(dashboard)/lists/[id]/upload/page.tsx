@@ -222,10 +222,10 @@ export default function UploadPage() {
               <div
                 className={`flex items-center justify-center w-7 h-7 rounded-full text-sm font-semibold border-2 transition-colors ${
                   isActive
-                    ? 'bg-blue-600 border-blue-600 text-white'
+                    ? 'bg-blue-600 border-primary bg-primary text-primary-foreground'
                     : isDone
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'border-slate-300 text-slate-400'
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-border text-muted-foreground'
                 }`}
               >
                 {isDone ? (
@@ -248,13 +248,13 @@ export default function UploadPage() {
               </div>
               <span
                 className={`text-sm font-medium ${
-                  isActive ? 'text-slate-900' : 'text-slate-400'
+                  isActive ? 'text-foreground' : 'text-muted-foreground'
                 }`}
               >
                 {label}
               </span>
               {i < STEP_LABELS.length - 1 && (
-                <div className="w-8 h-px bg-slate-200 mx-1" />
+                <div className="w-8 h-px bg-border mx-1" />
               )}
             </div>
           )
@@ -266,7 +266,7 @@ export default function UploadPage() {
         <Card>
           <CardContent className="pt-6">
             <h2 className="text-lg font-semibold mb-1">Upload a contacts file</h2>
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               Accepted formats: CSV and XLSX. The first row must be a header row.
             </p>
 
@@ -277,12 +277,12 @@ export default function UploadPage() {
               onDrop={handleDrop}
               className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 cursor-pointer transition-colors ${
                 isDragging
-                  ? 'border-blue-400 bg-blue-50'
-                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/40 hover:bg-muted/50'
               }`}
             >
               <svg
-                className="w-10 h-10 text-slate-300 mb-3"
+                className="w-10 h-10 text-muted-foreground/60 mb-3"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -295,13 +295,13 @@ export default function UploadPage() {
                 />
               </svg>
               {isUploading ? (
-                <p className="text-sm text-slate-500">Uploading file...</p>
+                <p className="text-sm text-muted-foreground">Uploading file...</p>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-slate-700">
+                  <p className="text-sm font-medium text-foreground">
                     Drag and drop your file here, or click to browse
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">.csv and .xlsx files only</p>
+                  <p className="text-xs text-muted-foreground mt-1">.csv and .xlsx files only</p>
                 </>
               )}
             </div>
@@ -315,7 +315,7 @@ export default function UploadPage() {
             />
 
             {uploadError && (
-              <p className="mt-4 text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+              <p className="mt-4 text-sm text-destructive bg-destructive/10 rounded px-3 py-2">
                 {uploadError}
               </p>
             )}
@@ -329,10 +329,10 @@ export default function UploadPage() {
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-lg font-semibold mb-1">Preview</h2>
-              <p className="text-sm text-slate-500 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Showing the first {preview.length} rows from your file.
               </p>
-              <div className="overflow-x-auto rounded border border-slate-200">
+              <div className="overflow-x-auto rounded border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -347,7 +347,7 @@ export default function UploadPage() {
                     {preview.map((row, ri) => (
                       <TableRow key={ri}>
                         {row.map((cell, ci) => (
-                          <TableCell key={ci} className="text-xs text-slate-600 whitespace-nowrap">
+                          <TableCell key={ci} className="text-xs text-muted-foreground whitespace-nowrap">
                             {cell ?? ''}
                           </TableCell>
                         ))}
@@ -362,7 +362,7 @@ export default function UploadPage() {
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-lg font-semibold mb-1">Map columns</h2>
-              <p className="text-sm text-slate-500 mb-5">
+              <p className="text-sm text-muted-foreground mb-5">
                 Assign each column to a field. The Email column is required.
               </p>
 
@@ -370,7 +370,7 @@ export default function UploadPage() {
                 {headers.map((header, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-40 shrink-0">
-                      <span className="text-sm font-medium text-slate-700 truncate block">
+                      <span className="text-sm font-medium text-foreground truncate block">
                         {header}
                       </span>
                     </div>
@@ -406,7 +406,7 @@ export default function UploadPage() {
               </div>
 
               {!isEmailMapped && (
-                <p className="mt-4 text-sm text-amber-700 bg-amber-50 rounded px-3 py-2">
+                <p className="mt-4 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded px-3 py-2">
                   Please map one column to Email before importing.
                 </p>
               )}
@@ -442,7 +442,7 @@ export default function UploadPage() {
             {isImporting && (
               <div className="space-y-3">
                 <Progress value={importProgress} className="h-2" />
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                   Processing your file, please wait...
                 </p>
               </div>
@@ -450,7 +450,7 @@ export default function UploadPage() {
 
             {importError && (
               <div className="space-y-4">
-                <p className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+                <p className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">
                   {importError}
                 </p>
                 <div className="flex gap-3">
@@ -475,27 +475,27 @@ export default function UploadPage() {
                 <Progress value={100} className="h-2" />
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="rounded-lg border border-slate-200 p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">
+                  <div className="rounded-lg border p-4 text-center">
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                       {importResult.inserted}
                     </p>
-                    <p className="text-sm text-slate-500 mt-1">Inserted</p>
+                    <p className="text-sm text-muted-foreground mt-1">Inserted</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 p-4 text-center">
-                    <p className="text-2xl font-bold text-blue-600">
+                  <div className="rounded-lg border p-4 text-center">
+                    <p className="text-2xl font-bold text-primary">
                       {importResult.updated}
                     </p>
-                    <p className="text-sm text-slate-500 mt-1">Updated</p>
+                    <p className="text-sm text-muted-foreground mt-1">Updated</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 p-4 text-center">
-                    <p className="text-2xl font-bold text-slate-500">
+                  <div className="rounded-lg border p-4 text-center">
+                    <p className="text-2xl font-bold text-muted-foreground">
                       {importResult.skipped}
                     </p>
-                    <p className="text-sm text-slate-500 mt-1">Skipped</p>
+                    <p className="text-sm text-muted-foreground mt-1">Skipped</p>
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   Import complete. Your contacts have been added to the list.
                 </p>
 

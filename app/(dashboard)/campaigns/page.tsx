@@ -53,20 +53,15 @@ interface ListOption {
 }
 
 function statusBadge(status: string) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  const variants: Record<string, "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info"> = {
     draft: "secondary",
-    scheduled: "outline",
-    sending: "default",
-    sent: "default",
+    scheduled: "warning",
+    sending: "info",
+    sent: "success",
     failed: "destructive",
   }
-  const classNames: Record<string, string> = {
-    sent: "bg-green-600 text-white hover:bg-green-700",
-    sending: "bg-blue-600 text-white hover:bg-blue-700",
-    scheduled: "border-yellow-500 text-yellow-700 bg-yellow-50",
-  }
   return (
-    <Badge variant={variants[status] || "secondary"} className={classNames[status] || ""}>
+    <Badge variant={variants[status] || "secondary"}>
       {status}
     </Badge>
   )
@@ -155,7 +150,7 @@ export default function CampaignsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Campaigns</h1>
+        <h1 className="text-2xl font-bold font-heading">Campaigns</h1>
         <Button onClick={openDialog}>New Campaign</Button>
       </div>
 
@@ -174,7 +169,7 @@ export default function CampaignsPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -194,7 +189,7 @@ export default function CampaignsPage() {
                   <TableCell>
                     <Link
                       href={`/campaigns/${campaign.id}`}
-                      className="font-medium hover:underline text-foreground"
+                      className="font-medium hover:text-primary transition-colors text-foreground"
                     >
                       {campaign.name}
                     </Link>

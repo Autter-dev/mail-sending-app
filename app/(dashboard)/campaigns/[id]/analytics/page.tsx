@@ -94,11 +94,11 @@ export default function CampaignAnalyticsPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/campaigns/${id}`}>&larr; Back to Campaign</Link>
         </Button>
-        <h1 className="text-2xl font-semibold">Campaign Analytics</h1>
+        <h1 className="text-2xl font-bold font-heading">Campaign Analytics</h1>
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -125,7 +125,7 @@ export default function CampaignAnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{analytics.sent.toLocaleString()}</p>
+                <p className="text-3xl font-bold font-heading">{analytics.sent.toLocaleString()}</p>
               </CardContent>
             </Card>
 
@@ -136,7 +136,7 @@ export default function CampaignAnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">
+                <p className="text-3xl font-bold font-heading">
                   {formatRate(analytics.opens, analytics.sent)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -152,7 +152,7 @@ export default function CampaignAnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">
+                <p className="text-3xl font-bold font-heading">
                   {formatRate(analytics.clicks, analytics.sent)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -168,7 +168,7 @@ export default function CampaignAnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{analytics.bounced.toLocaleString()}</p>
+                <p className="text-3xl font-bold font-heading">{analytics.bounced.toLocaleString()}</p>
               </CardContent>
             </Card>
           </>
@@ -189,16 +189,16 @@ export default function CampaignAnalyticsPage() {
                 data={analytics.timeline}
                 margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(30, 10%, 89%)" className="dark:opacity-20" />
                 <XAxis
                   dataKey="hour"
                   tickFormatter={formatHour}
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 12, fill: 'hsl(25, 6%, 45%)' }}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
+                  tick={{ fontSize: 12, fill: 'hsl(25, 6%, 45%)' }}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -206,8 +206,9 @@ export default function CampaignAnalyticsPage() {
                   labelFormatter={(value) => formatHour(String(value))}
                   contentStyle={{
                     fontSize: 12,
-                    borderRadius: 6,
-                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    border: '1px solid hsl(30, 15%, 89%)',
+                    backgroundColor: 'hsl(30, 25%, 99%)',
                   }}
                 />
                 <Legend
@@ -217,7 +218,7 @@ export default function CampaignAnalyticsPage() {
                   type="monotone"
                   dataKey="opens"
                   name="Opens"
-                  stroke="#2563eb"
+                  stroke="#b45309"
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -226,7 +227,7 @@ export default function CampaignAnalyticsPage() {
                   type="monotone"
                   dataKey="clicks"
                   name="Clicks"
-                  stroke="#16a34a"
+                  stroke="#059669"
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -269,7 +270,7 @@ export default function CampaignAnalyticsPage() {
                         href={link.linkUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-primary hover:underline"
                         title={link.linkUrl}
                       >
                         {truncateUrl(link.linkUrl)}

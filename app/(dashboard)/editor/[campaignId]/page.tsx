@@ -238,7 +238,7 @@ export default function EditorPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)]">
       {/* Top Bar */}
-      <div className="border-b bg-white px-4 py-3 shrink-0">
+      <div className="border-b bg-card px-4 py-3 shrink-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <Link
@@ -296,20 +296,20 @@ export default function EditorPage() {
         <div className="flex items-center gap-1 mt-3 mb-2">
           <button
             onClick={() => setEditorMode("visual")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               editorMode === "visual"
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:bg-secondary/80"
             }`}
           >
             Visual Editor
           </button>
           <button
             onClick={() => setEditorMode("code")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               editorMode === "code"
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:bg-secondary/80"
             }`}
           >
             HTML Code
@@ -374,7 +374,7 @@ export default function EditorPage() {
       </div>
 
       {/* Bottom Bar: Merge Tags */}
-      <div className="border-t bg-white px-4 py-2 shrink-0">
+      <div className="border-t bg-card px-4 py-2 shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground shrink-0">Merge tags:</span>
           {mergeTags.length === 0 ? (
@@ -385,7 +385,7 @@ export default function EditorPage() {
                 key={item.tag}
                 onClick={() => copyMergeTag(item.tag)}
                 title={item.description}
-                className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded font-mono transition-colors"
+                className="text-xs px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-md font-mono transition-colors"
               >
                 {item.tag}
               </button>

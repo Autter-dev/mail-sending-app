@@ -79,9 +79,9 @@ export function HtmlEditor({ html, onChange }: HtmlEditorProps) {
     <div className="flex h-full overflow-hidden">
       {/* Code editor */}
       <div className="flex-1 flex flex-col overflow-hidden border-r">
-        <div className="px-4 py-2 border-b bg-white flex items-center justify-between gap-2">
+        <div className="px-4 py-2 border-b bg-card flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-slate-700">HTML Code</p>
+            <p className="text-sm font-medium text-foreground">HTML Code</p>
             <input
               ref={fileRef}
               type="file"
@@ -146,8 +146,8 @@ export function HtmlEditor({ html, onChange }: HtmlEditorProps) {
 
       {/* Live preview */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 py-2 border-b bg-white flex items-center justify-between">
-          <p className="text-sm font-medium text-slate-700">Preview</p>
+        <div className="px-4 py-2 border-b bg-card flex items-center justify-between">
+          <p className="text-sm font-medium text-foreground">Preview</p>
           <div className="flex gap-1">
             <Button
               variant={previewMode === 'desktop' ? 'default' : 'ghost'}
@@ -167,10 +167,10 @@ export function HtmlEditor({ html, onChange }: HtmlEditorProps) {
             </Button>
           </div>
         </div>
-        <div className="flex-1 overflow-auto bg-slate-100 p-4 flex justify-center">
+        <div className="flex-1 overflow-auto bg-muted/50 p-4 flex justify-center">
           <iframe
             srcDoc={html || '<p style="color:#999;font-family:sans-serif;text-align:center;padding:40px;">HTML preview will appear here</p>'}
-            className="bg-white shadow rounded border-0"
+            className="bg-card shadow-warm rounded-lg border-0"
             style={{
               width: previewMode === 'desktop' ? '600px' : '375px',
               height: '100%',

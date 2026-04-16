@@ -76,7 +76,7 @@ export function ImageBlock({ props, onChange }: BlockEditorProps) {
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          className="mt-1 border-2 border-dashed border-slate-200 rounded-md p-4 text-center hover:border-slate-400 transition-colors cursor-pointer"
+          className="mt-1 border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors cursor-pointer"
           onClick={() => fileRef.current?.click()}
         >
           <input
@@ -109,7 +109,7 @@ export function ImageBlock({ props, onChange }: BlockEditorProps) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-muted-foreground">or</span>
+          <span className="bg-card px-2 text-muted-foreground">or</span>
         </div>
       </div>
 

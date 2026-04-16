@@ -238,11 +238,11 @@ export default function ListDetailPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <Link href="/lists" className="hover:underline">Lists</Link>
+            <Link href="/lists" className="hover:text-primary transition-colors">Lists</Link>
             <span>/</span>
             <span>{listInfo?.name}</span>
           </div>
-          <h1 className="text-2xl font-semibold">{listInfo?.name}</h1>
+          <h1 className="text-2xl font-bold font-heading">{listInfo?.name}</h1>
           {listInfo?.description && (
             <p className="text-sm text-muted-foreground mt-1">{listInfo.description}</p>
           )}
@@ -357,7 +357,7 @@ export default function ListDetailPage() {
             </div>
 
             {/* Table */}
-            <div className="rounded-md border">
+            <div className="rounded-xl border">
               <Table>
                 <TableHeader>
                   <TableRow>

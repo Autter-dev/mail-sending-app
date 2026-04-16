@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { contacts, lists, campaignSends, campaignEvents } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
 async function getContactByToken(token: string) {
@@ -70,8 +70,8 @@ export default async function UnsubscribePage({
   if (!uuidRegex.test(token)) {
     return (
       <UnsubscribeLayout appName={appName}>
-        <h1 className="text-xl font-semibold text-slate-900 mb-2">Invalid Link</h1>
-        <p className="text-slate-600">
+        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
+        <p className="text-muted-foreground">
           This link is invalid or has already been used.
         </p>
       </UnsubscribeLayout>
@@ -83,8 +83,8 @@ export default async function UnsubscribePage({
   if (!contact) {
     return (
       <UnsubscribeLayout appName={appName}>
-        <h1 className="text-xl font-semibold text-slate-900 mb-2">Invalid Link</h1>
-        <p className="text-slate-600">
+        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
+        <p className="text-muted-foreground">
           This link is invalid or has already been used.
         </p>
       </UnsubscribeLayout>
@@ -94,8 +94,8 @@ export default async function UnsubscribePage({
   if (contact.status === 'unsubscribed') {
     return (
       <UnsubscribeLayout appName={appName}>
-        <h1 className="text-xl font-semibold text-slate-900 mb-2">Already Unsubscribed</h1>
-        <p className="text-slate-600">
+        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Already Unsubscribed</h1>
+        <p className="text-muted-foreground">
           <span className="font-medium">{contact.email}</span> is already unsubscribed
           from <span className="font-medium">{contact.listName}</span>.
         </p>
@@ -105,8 +105,8 @@ export default async function UnsubscribePage({
 
   return (
     <UnsubscribeLayout appName={appName}>
-      <h1 className="text-xl font-semibold text-slate-900 mb-2">Unsubscribe</h1>
-      <p className="text-slate-600 mb-6">
+      <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Unsubscribe</h1>
+      <p className="text-muted-foreground mb-6">
         Are you sure you want to unsubscribe{' '}
         <span className="font-medium">{contact.email}</span> from{' '}
         <span className="font-medium">{contact.listName}</span>?
@@ -115,7 +115,7 @@ export default async function UnsubscribePage({
         <input type="hidden" name="token" value={token} />
         <button
           type="submit"
-          className="inline-flex items-center justify-center rounded-md bg-slate-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
+          className="inline-flex items-center justify-center rounded-lg bg-destructive px-6 py-2.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
         >
           Confirm Unsubscribe
         </button>
@@ -132,10 +132,16 @@ function UnsubscribeLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-          <p className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-6">
+        <div className="bg-card rounded-xl shadow-warm border p-8 text-center">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-6">
             {appName}
           </p>
           {children}
