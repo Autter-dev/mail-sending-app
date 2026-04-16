@@ -1,9 +1,17 @@
 import Handlebars from 'handlebars'
 import juice from 'juice'
 import type { Block } from '@/lib/db/schema'
+import { logger } from '@/lib/logger'
 
 export function renderBlocks(blocks: Block[]): string {
-  return blocks.map(renderBlock).join('\n')
+  logger.info({ blockCount: blocks.length, blockTypes: blocks.map(b => b?.type) }, 'renderBlocks: rendering blocks to HTML')
+  const result = blocks.map((block, i) => {
+    const html = renderBlock(block)
+    logger.info({ index: i, type: block?.type, propsText: (block?.props as Record<string, string>)?.text?.substring(0, 100), outputLength: html.length }, 'renderBlocks: rendered individual block')
+    return html
+  }).join('\n')
+  logger.info({ totalOutputLength: result.length, outputPreview: result.substring(0, 300) }, 'renderBlocks: final blocks HTML')
+  return result
 }
 
 function renderBlock(block: Block): string {
@@ -36,19 +44,41 @@ export function renderTemplate(options: {
 }): string {
   const { blocks, contact, sendId, appUrl, unsubscribeUrl, rawHtml } = options
 
+  // Defensive: ensure blocks is an array
+  const safeBlocks = Array.isArray(blocks) ? blocks : []
+
+  logger.info({
+    sendId,
+    blocksIsArray: Array.isArray(blocks),
+    blocksLength: safeBlocks.length,
+    blocksTypes: safeBlocks.map(b => b?.type),
+    rawHtmlType: typeof rawHtml,
+    rawHtmlLength: typeof rawHtml === 'string' ? rawHtml.length : 0,
+    rawHtmlTruthy: !!rawHtml,
+  }, 'renderTemplate: input diagnostics')
+
   // Prefer visual blocks if they exist, fall back to raw HTML from code editor
   let bodyHtml: string
-  if (blocks.length > 0) {
-    bodyHtml = renderBlocks(blocks)
-  } else if (rawHtml && rawHtml.trim().length > 0) {
+  let renderPath: string
+
+  if (safeBlocks.length > 0) {
+    renderPath = 'blocks'
+    bodyHtml = renderBlocks(safeBlocks)
+    logger.info({ sendId, renderPath, bodyHtmlLength: bodyHtml.length, bodyHtmlPreview: bodyHtml.substring(0, 300) }, 'renderTemplate: rendered blocks to HTML')
+  } else if (rawHtml && typeof rawHtml === 'string' && rawHtml.trim().length > 0) {
+    renderPath = 'rawHtml'
     bodyHtml = rawHtml
+    logger.info({ sendId, renderPath, bodyHtmlLength: bodyHtml.length, bodyHtmlPreview: bodyHtml.substring(0, 300) }, 'renderTemplate: using raw HTML')
   } else {
+    renderPath = 'empty'
     bodyHtml = ''
+    logger.warn({ sendId, renderPath, blocksLength: safeBlocks.length, rawHtmlLength: typeof rawHtml === 'string' ? rawHtml.length : 0 }, 'renderTemplate: WARNING no content found, body will be empty')
   }
 
   // Replace Handlebars merge tags (e.g. {{first_name}}, {{unsubscribe_url}})
   const template = Handlebars.compile(bodyHtml)
   const merged = template(contact)
+  logger.info({ sendId, mergedLength: merged.length, mergedPreview: merged.substring(0, 300) }, 'renderTemplate: after Handlebars merge')
 
   const withTracking = wrapLinks(merged, sendId, appUrl)
 
@@ -60,7 +90,23 @@ export function renderTemplate(options: {
     </div>
   `
 
-  const full = `
+  // Check if rawHtml is a complete HTML document (has its own <html>/<body> tags)
+  const isFullDocument = renderPath === 'rawHtml' && /<html[\s>]/i.test(withTracking)
+
+  let full: string
+  if (isFullDocument) {
+    // Full HTML document: Handlebars already replaced {{unsubscribe_url}}, {{first_name}}, etc.
+    // Just add tracking pixel before </body>, no extra wrapper or footer
+    logger.info({ sendId }, 'renderTemplate: rawHtml is a full HTML document, sending as-is with tracking pixel')
+    const bodyCloseIndex = withTracking.toLowerCase().lastIndexOf('</body>')
+    if (bodyCloseIndex !== -1) {
+      full = withTracking.substring(0, bodyCloseIndex) + trackingPixel + withTracking.substring(bodyCloseIndex)
+    } else {
+      full = withTracking + trackingPixel
+    }
+  } else {
+    // Wrap block-based or fragment HTML in the email template
+    full = `
     <html><body style="margin:0;padding:0;background:#f9fafb;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 0;">
         <tr><td align="center">
@@ -73,8 +119,10 @@ export function renderTemplate(options: {
       </table>
     </body></html>
   `
+  }
 
-  return juice(full)
+  logger.info({ sendId, isFullDocument, finalHtmlLength: full.length }, 'renderTemplate: final HTML generated')
+  return isFullDocument ? full : juice(full)
 }
 
 function wrapLinks(html: string, sendId: string, appUrl: string): string {

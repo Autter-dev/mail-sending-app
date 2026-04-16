@@ -14,8 +14,25 @@ async function processSendJob(sendId: string, campaignId: string) {
   const startTime = Date.now()
   logger.info({ sendId, campaignId }, 'Processing send job')
 
-  // Check for cancel
+  // Fetch campaign from DB
   const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId))
+
+  if (campaign) {
+    logger.info({
+      sendId,
+      campaignId,
+      campaignSubject: campaign.subject,
+      campaignStatus: campaign.status,
+      templateJsonType: typeof campaign.templateJson,
+      templateJsonIsArray: Array.isArray(campaign.templateJson),
+      templateJsonLength: Array.isArray(campaign.templateJson) ? campaign.templateJson.length : 'N/A',
+      templateJsonPreview: JSON.stringify(campaign.templateJson)?.substring(0, 500),
+      templateHtmlLength: campaign.templateHtml ? campaign.templateHtml.length : 0,
+      templateHtmlPreview: campaign.templateHtml ? campaign.templateHtml.substring(0, 200) : null,
+    }, 'Fetched campaign template data from DB')
+  }
+
+  // Check for cancel
   if (!campaign || campaign.cancelRequested) {
     logger.warn({ sendId, campaignId, cancelRequested: campaign?.cancelRequested }, 'Campaign cancelled or not found, skipping send')
     await db.update(campaignSends).set({ status: 'failed', errorMessage: 'Cancelled' }).where(eq(campaignSends.id, sendId))
@@ -59,7 +76,15 @@ async function processSendJob(sendId: string, campaignId: string) {
     ...(contact.metadata as Record<string, string>),
   }
 
-  logger.debug({ sendId, contactEmail: contact.email }, 'Rendering email template')
+  logger.info({
+    sendId,
+    contactEmail: contact.email,
+    contactDataKeys: Object.keys(contactData),
+    contactFirstName: contactData.first_name,
+    contactLastName: contactData.last_name,
+  }, 'Contact data prepared for merge tags')
+
+  logger.info({ sendId, contactEmail: contact.email }, 'Rendering email template')
   const html = renderTemplate({
     blocks: campaign.templateJson,
     contact: contactData,
@@ -69,7 +94,15 @@ async function processSendJob(sendId: string, campaignId: string) {
     rawHtml: campaign.templateHtml,
   })
 
-  logger.info({ sendId, contactEmail: contact.email, subject: campaign.subject }, 'Sending email via provider')
+  logger.info({
+    sendId,
+    renderedHtmlLength: html.length,
+    renderedHtmlPreview: html.substring(0, 500),
+    htmlContainsBody: html.includes('<body'),
+    htmlContainsUnsubscribe: html.includes('Unsubscribe'),
+  }, 'Rendered email HTML for inspection')
+
+  logger.info({ sendId, contactEmail: contact.email, subject: campaign.subject, htmlLength: html.length }, 'Sending email via provider')
   const { messageId } = await adapter.send({
     to: contact.email,
     from: campaign.fromEmail,
