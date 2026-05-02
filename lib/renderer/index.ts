@@ -122,7 +122,9 @@ export function renderTemplate(options: {
   }
 
   logger.info({ sendId, isFullDocument, finalHtmlLength: full.length }, 'renderTemplate: final HTML generated')
-  return isFullDocument ? full : juice(full)
+  // Always inline styles. Email clients (notably Gmail) strip or limit <style> blocks,
+  // so <style> rules must be inlined onto element style attributes to render reliably.
+  return juice(full)
 }
 
 function wrapLinks(html: string, sendId: string, appUrl: string): string {

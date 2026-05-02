@@ -37,9 +37,10 @@ export async function POST(
     logger.warn({ campaignId: params.id }, 'Campaign missing subject')
     return NextResponse.json({ error: 'Campaign is missing a subject line' }, { status: 400 })
   }
-  if (!campaign.fromEmail || campaign.fromEmail.trim() === '') {
-    logger.warn({ campaignId: params.id }, 'Campaign missing fromEmail')
-    return NextResponse.json({ error: 'Campaign is missing a from email address' }, { status: 400 })
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!campaign.fromEmail || !emailRegex.test(campaign.fromEmail)) {
+    logger.warn({ campaignId: params.id, fromEmail: campaign.fromEmail }, 'Campaign from email is missing or invalid')
+    return NextResponse.json({ error: 'Campaign "From email" is missing or invalid. Set a complete sender address (e.g. you@yourdomain.com) and save before sending.' }, { status: 400 })
   }
   if (!campaign.fromName || campaign.fromName.trim() === '') {
     logger.warn({ campaignId: params.id }, 'Campaign missing fromName')

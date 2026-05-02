@@ -26,10 +26,35 @@ export async function POST(
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(toEmail)) {
-      logger.warn({ campaignId: params.id, toEmail }, 'Test send invalid email format')
+    const recipients = Array.from(
+      new Set(
+        toEmail
+          .split(',')
+          .map((e) => e.trim())
+          .filter((e) => e.length > 0)
+      )
+    )
+
+    if (recipients.length === 0) {
+      logger.warn({ campaignId: params.id }, 'Test send had no recipients after parsing')
       return NextResponse.json(
-        { error: 'toEmail must be a valid email address' },
+        { error: 'At least one recipient email is required' },
+        { status: 400 }
+      )
+    }
+
+    const invalidEmails = recipients.filter((e) => !emailRegex.test(e))
+    if (invalidEmails.length > 0) {
+      logger.warn({ campaignId: params.id, invalidEmails }, 'Test send has invalid email(s)')
+      return NextResponse.json(
+        { error: `Invalid email address(es): ${invalidEmails.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    if (recipients.length > 10) {
+      return NextResponse.json(
+        { error: 'Cannot send a test to more than 10 recipients at once' },
         { status: 400 }
       )
     }
@@ -76,9 +101,25 @@ export async function POST(
       )
     }
 
+    if (!campaign.fromEmail || !emailRegex.test(campaign.fromEmail)) {
+      logger.warn({ campaignId: params.id, fromEmail: campaign.fromEmail }, 'Campaign from email is missing or invalid')
+      return NextResponse.json(
+        { error: 'Campaign "From email" is missing or invalid. Set a complete sender address (e.g. you@yourdomain.com) in the editor and save before sending.' },
+        { status: 400 }
+      )
+    }
+
+    if (!campaign.fromName || !campaign.fromName.trim()) {
+      logger.warn({ campaignId: params.id }, 'Campaign from name is missing')
+      return NextResponse.json(
+        { error: 'Campaign "From name" is missing. Set a sender name in the editor and save before sending.' },
+        { status: 400 }
+      )
+    }
+
     logger.info(
-      { campaignId: params.id, toEmail, providerType: provider.type, subject: campaign.subject, hasContent },
-      'Rendering template and sending test email'
+      { campaignId: params.id, recipients, providerType: provider.type, subject: campaign.subject, hasContent },
+      'Rendering template and sending test email(s)'
     )
 
     const adapter = createProviderAdapter(provider.type, provider.configEncrypted)
@@ -87,28 +128,53 @@ export async function POST(
     const appUrl = process.env.APP_URL!
     const testUnsubscribeUrl = `${appUrl}/unsubscribe/00000000-0000-0000-0000-000000000000`
 
-    const html = renderTemplate({
-      blocks: campaign.templateJson,
-      contact: { email: toEmail, first_name: 'Test', last_name: 'User', unsubscribe_url: testUnsubscribeUrl },
-      sendId: 'test-' + Date.now(),
-      appUrl,
-      unsubscribeUrl: testUnsubscribeUrl,
-      rawHtml: campaign.templateHtml,
-    })
+    const sent: string[] = []
+    const failed: { email: string; error: string }[] = []
 
-    await adapter.send({
-      to: toEmail,
-      from: campaign.fromEmail,
-      fromName: campaign.fromName,
-      subject: campaign.subject || 'Test Email',
-      html,
-    })
+    for (const recipient of recipients) {
+      try {
+        const html = renderTemplate({
+          blocks: campaign.templateJson,
+          contact: { email: recipient, first_name: 'Test', last_name: 'User', unsubscribe_url: testUnsubscribeUrl },
+          sendId: 'test-' + Date.now(),
+          appUrl,
+          unsubscribeUrl: testUnsubscribeUrl,
+          rawHtml: campaign.templateHtml,
+        })
+
+        await adapter.send({
+          to: recipient,
+          from: campaign.fromEmail,
+          fromName: campaign.fromName,
+          subject: campaign.subject || 'Test Email',
+          html,
+        })
+        sent.push(recipient)
+      } catch (sendErr) {
+        const message = sendErr instanceof Error ? sendErr.message : 'Send failed'
+        logger.error({ recipient, err: sendErr }, 'Test send to recipient failed')
+        failed.push({ email: recipient, error: message })
+      }
+    }
 
     const durationMs = Date.now() - startTime
-    logger.info({ campaignId: params.id, toEmail, durationMs }, 'Test email sent successfully')
-    trackEvent('test_email_sent', { campaignId: params.id, providerType: provider.type, durationMs })
+    logger.info({ campaignId: params.id, sent, failed, durationMs }, 'Test email batch complete')
+    trackEvent('test_email_sent', {
+      campaignId: params.id,
+      providerType: provider.type,
+      sentCount: sent.length,
+      failedCount: failed.length,
+      durationMs,
+    })
 
-    return NextResponse.json({ success: true })
+    if (sent.length === 0) {
+      return NextResponse.json(
+        { error: failed[0]?.error || 'Failed to send test emails', failed },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true, sent, failed })
   } catch (err) {
     const durationMs = Date.now() - startTime
     const message = err instanceof Error ? err.message : 'Failed to send test email'

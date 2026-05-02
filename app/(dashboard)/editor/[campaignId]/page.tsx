@@ -204,7 +204,20 @@ export default function EditorPage() {
         toast({ title: "Error", description: data.error || "Failed to send test email", variant: "destructive" })
         return
       }
-      toast({ title: "Sent", description: `Test email sent to ${testEmail}` })
+      const sentList: string[] = data.sent || []
+      const failedList: { email: string; error: string }[] = data.failed || []
+      const sentMsg = sentList.length > 0
+        ? `Sent to ${sentList.length} recipient${sentList.length === 1 ? "" : "s"}: ${sentList.join(", ")}`
+        : "Sent"
+      if (failedList.length > 0) {
+        toast({
+          title: "Partial success",
+          description: `${sentMsg}. Failed: ${failedList.map((f) => f.email).join(", ")}`,
+          variant: "destructive",
+        })
+      } else {
+        toast({ title: "Sent", description: sentMsg })
+      }
       setTestDialogOpen(false)
       setTestEmail("")
     } catch {
@@ -267,13 +280,16 @@ export default function EditorPage() {
                 </DialogHeader>
                 <div className="space-y-3 py-2">
                   <div>
-                    <Label>Recipient Email</Label>
+                    <Label>Recipient Emails</Label>
                     <Input
-                      type="email"
+                      type="text"
                       value={testEmail}
                       onChange={(e) => setTestEmail(e.target.value)}
-                      placeholder="test@example.com"
+                      placeholder="test@example.com, another@example.com"
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Separate multiple addresses with commas. Up to 10 recipients.
+                    </p>
                   </div>
                 </div>
                 <DialogFooter>
