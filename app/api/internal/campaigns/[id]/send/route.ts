@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { campaigns, campaignSends, contacts } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { campaigns, campaignSends, contacts, suppressions } from '@/lib/db/schema'
+import { eq, and, sql } from 'drizzle-orm'
 import { getQueue, JOBS } from '@/lib/queue'
 import { logger, trackEvent, trackError } from '@/lib/logger'
 
@@ -68,11 +68,17 @@ export async function POST(
     'Campaign validation passed, fetching contacts'
   )
 
-  // Fetch active contacts for the list
+  // Fetch active contacts for the list, excluding any whose email is on the global suppression list
   const contactList = await db
     .select()
     .from(contacts)
-    .where(and(eq(contacts.listId, campaign.listId), eq(contacts.status, 'active')))
+    .where(
+      and(
+        eq(contacts.listId, campaign.listId),
+        eq(contacts.status, 'active'),
+        sql`NOT EXISTS (SELECT 1 FROM ${suppressions} WHERE ${suppressions.email} = ${contacts.email})`
+      )
+    )
 
   if (contactList.length === 0) {
     logger.warn({ campaignId: params.id, listId: campaign.listId }, 'No active contacts in list')

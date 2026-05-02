@@ -6,6 +6,7 @@ import { createProviderAdapter } from './lib/providers/factory'
 import { renderTemplate, renderPlainText } from './lib/renderer'
 import { JOBS } from './lib/queue'
 import { logger, trackEvent, trackError, shutdownTracking } from './lib/logger'
+import { isSuppressed } from './lib/suppressions'
 
 const APP_URL = process.env.APP_URL!
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
@@ -58,6 +59,13 @@ async function processSendJob(sendId: string, campaignId: string) {
     logger.warn({ sendId, contactId: send.contactId, contactStatus: contact?.status }, 'Contact not active, skipping send')
     await db.update(campaignSends).set({ status: 'failed', errorMessage: 'Contact not active' }).where(eq(campaignSends.id, sendId))
     trackEvent('email_send_skipped', { sendId, campaignId, reason: 'contact_not_active' })
+    return
+  }
+
+  if (await isSuppressed(contact.email)) {
+    logger.warn({ sendId, contactId: send.contactId, contactEmail: contact.email }, 'Email is globally suppressed, skipping send')
+    await db.update(campaignSends).set({ status: 'failed', errorMessage: 'Globally suppressed' }).where(eq(campaignSends.id, sendId))
+    trackEvent('email_send_skipped', { sendId, campaignId, reason: 'suppressed' })
     return
   }
 
