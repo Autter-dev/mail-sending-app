@@ -348,7 +348,7 @@ The S3 bucket must exist before the first upload. Create it via the MinIO consol
 - **Bugs and feature requests**: open an issue on GitHub. Include the version (commit hash), deployment shape, and relevant logs.
 - **Pull requests**: see [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, the PR checklist, and local development tips.
 - **Operational questions**: read [DEPLOYMENT.md](./DEPLOYMENT.md) first, then open a discussion on GitHub.
-- **Security issues**: do not file a public issue. Email the maintainer directly (address listed in `README.md`).
+- **Security issues**: do not file a public issue. See [SECURITY.md](./SECURITY.md) for the private reporting process.
 
 ## Common gotchas
 

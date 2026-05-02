@@ -2,6 +2,8 @@
 
 Self-hostable broadcast email tool. Manage contact lists, design emails with a visual editor, send campaigns through Resend or Amazon SES, and track opens and clicks. No third-party email marketing platform required.
 
+> Sponsored by [Autter](https://autter.dev). Built and maintained as an open source project for the community.
+
 ## Features
 
 - **Contact Management** - Import contacts via CSV/XLSX upload, organize into lists, track subscription status
@@ -346,6 +348,20 @@ PostgreSQL
 S3/MinIO
   - CSV/XLSX upload storage
 ```
+
+## Security
+
+Found a vulnerability? Please do not file a public issue. See [SECURITY.md](./SECURITY.md) for the private reporting process.
+
+For operators, the production hardening checklist lives in [SETUP.md](./SETUP.md#production-security-checklist).
+
+## Contributing
+
+Pull requests welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for local setup, branch naming, and the PR checklist.
+
+## Sponsor
+
+Mailpost is sponsored by [Autter](https://autter.dev). Autter funds development and maintenance, but the project is open source under MIT and runs entirely on infrastructure you control.
 
 ## License
 
