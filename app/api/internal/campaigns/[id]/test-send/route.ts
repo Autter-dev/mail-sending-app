@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { campaigns, emailProviders } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from '@/lib/providers/factory'
-import { renderTemplate } from '@/lib/renderer'
+import { renderTemplate, renderPlainText } from '@/lib/renderer'
 import { logger, trackEvent, trackError } from '@/lib/logger'
 
 export async function POST(
@@ -128,6 +128,13 @@ export async function POST(
     const appUrl = process.env.APP_URL!
     const testUnsubscribeUrl = `${appUrl}/unsubscribe/00000000-0000-0000-0000-000000000000`
 
+    if (/localhost|127\.0\.0\.1/i.test(appUrl)) {
+      logger.warn(
+        { appUrl, campaignId: params.id },
+        'APP_URL is localhost: external email clients cannot fetch images or the tracking pixel from this URL. Use a tunnel (ngrok, cloudflared) or a public deployment for end-to-end testing.'
+      )
+    }
+
     const sent: string[] = []
     const failed: { email: string; error: string }[] = []
 
@@ -148,6 +155,7 @@ export async function POST(
           fromName: campaign.fromName,
           subject: campaign.subject || 'Test Email',
           html,
+          text: renderPlainText(html),
         })
         sent.push(recipient)
       } catch (sendErr) {

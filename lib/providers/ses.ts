@@ -26,7 +26,12 @@ export class SESAdapter implements EmailProviderAdapter {
         Destination: { ToAddresses: [options.to] },
         Message: {
           Subject: { Data: options.subject, Charset: 'UTF-8' },
-          Body: { Html: { Data: options.html, Charset: 'UTF-8' } },
+          Body: {
+            Html: { Data: options.html, Charset: 'UTF-8' },
+            ...(options.text
+              ? { Text: { Data: options.text, Charset: 'UTF-8' } }
+              : {}),
+          },
         },
       }))
 

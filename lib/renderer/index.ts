@@ -1,5 +1,6 @@
 import Handlebars from 'handlebars'
 import juice from 'juice'
+import { convert as htmlToText } from 'html-to-text'
 import type { Block } from '@/lib/db/schema'
 import { logger } from '@/lib/logger'
 
@@ -124,7 +125,22 @@ export function renderTemplate(options: {
   logger.info({ sendId, isFullDocument, finalHtmlLength: full.length }, 'renderTemplate: final HTML generated')
   // Always inline styles. Email clients (notably Gmail) strip or limit <style> blocks,
   // so <style> rules must be inlined onto element style attributes to render reliably.
-  return juice(full)
+  // Keep media queries and font-face rules in <style> tags since juice cannot inline them.
+  return juice(full, {
+    preserveMediaQueries: true,
+    preserveFontFaces: true,
+    removeStyleTags: false,
+  })
+}
+
+export function renderPlainText(html: string): string {
+  return htmlToText(html, {
+    wordwrap: 78,
+    selectors: [
+      { selector: 'img', format: 'skip' },
+      { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
+    ],
+  })
 }
 
 function wrapLinks(html: string, sendId: string, appUrl: string): string {

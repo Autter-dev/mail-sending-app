@@ -19,6 +19,7 @@ export class ResendAdapter implements EmailProviderAdapter {
       to: options.to,
       subject: options.subject,
       html: options.html,
+      text: options.text,
       headers: options.headers,
     })
 

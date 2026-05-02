@@ -3,12 +3,19 @@ import { db } from './lib/db'
 import { campaigns, campaignSends, contacts, emailProviders } from './lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from './lib/providers/factory'
-import { renderTemplate } from './lib/renderer'
+import { renderTemplate, renderPlainText } from './lib/renderer'
 import { JOBS } from './lib/queue'
 import { logger, trackEvent, trackError, shutdownTracking } from './lib/logger'
 
 const APP_URL = process.env.APP_URL!
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
+
+if (/localhost|127\.0\.0\.1/i.test(APP_URL)) {
+  logger.warn(
+    { appUrl: APP_URL },
+    'APP_URL points to localhost. External email clients (Gmail, Outlook) cannot reach this host, so embedded images and tracking pixels will not load. Use a public URL or a tunnel (ngrok, cloudflared) for real sends.'
+  )
+}
 
 async function processSendJob(sendId: string, campaignId: string) {
   const startTime = Date.now()
@@ -102,13 +109,16 @@ async function processSendJob(sendId: string, campaignId: string) {
     htmlContainsUnsubscribe: html.includes('Unsubscribe'),
   }, 'Rendered email HTML for inspection')
 
-  logger.info({ sendId, contactEmail: contact.email, subject: campaign.subject, htmlLength: html.length }, 'Sending email via provider')
+  const text = renderPlainText(html)
+
+  logger.info({ sendId, contactEmail: contact.email, subject: campaign.subject, htmlLength: html.length, textLength: text.length }, 'Sending email via provider')
   const { messageId } = await adapter.send({
     to: contact.email,
     from: campaign.fromEmail,
     fromName: campaign.fromName,
     subject: campaign.subject,
     html,
+    text,
     headers: {
       'List-Unsubscribe': `<${APP_URL}/unsubscribe/${contact.unsubscribeToken}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

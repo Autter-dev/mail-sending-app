@@ -23,6 +23,7 @@ export async function GET(
     return new NextResponse(Buffer.from(bytes), {
       headers: {
         'Content-Type': file.contentType,
+        'Content-Disposition': `inline; filename="${params.id}"`,
         'Cache-Control': 'public, max-age=31536000, immutable',
         'Access-Control-Allow-Origin': '*',
       },
