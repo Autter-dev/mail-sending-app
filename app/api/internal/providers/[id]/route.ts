@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { emailProviders } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { decrypt } from '@/lib/encryption'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 interface ProviderConfig {
   apiKey?: string
@@ -44,11 +45,20 @@ function safeProviderView(provider: typeof emailProviders.$inferSelect) {
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const [existing] = await db.select().from(emailProviders).where(eq(emailProviders.id, params.id))
     await db.delete(emailProviders).where(eq(emailProviders.id, params.id))
+    if (existing) {
+      await logAudit(
+        await auditFromSession(req),
+        'provider.delete',
+        { type: 'provider', id: params.id },
+        { name: existing.name, providerType: existing.type },
+      )
+    }
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to delete provider'
@@ -96,6 +106,13 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
     }
+
+    await logAudit(
+      await auditFromSession(req),
+      isDefault ? 'provider.set_default' : 'provider.unset_default',
+      { type: 'provider', id: updated.id },
+      { name: updated.name },
+    )
 
     return NextResponse.json(safeProviderView(updated))
   } catch (err) {

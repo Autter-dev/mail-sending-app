@@ -4,6 +4,7 @@ import { campaigns, campaignSends, contacts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { getQueue, JOBS } from '@/lib/queue'
 import { logger, trackEvent, trackError } from '@/lib/logger'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function POST(
   req: NextRequest,
@@ -146,6 +147,17 @@ export async function POST(
     scheduledAt: scheduledAt || null,
     durationMs,
   })
+
+  await logAudit(
+    await auditFromSession(req),
+    'campaign.send',
+    { type: 'campaign', id: campaign.id },
+    {
+      totalRecipients: contactList.length,
+      scheduledAt: scheduledAt ?? null,
+      status: newStatus,
+    },
+  )
 
   return NextResponse.json({ queued: sends.length })
 }

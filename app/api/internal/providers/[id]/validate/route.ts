@@ -4,9 +4,10 @@ import { emailProviders } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from '@/lib/providers/factory'
 import { logger, trackEvent, trackError } from '@/lib/logger'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const startTime = Date.now()
@@ -35,6 +36,13 @@ export async function POST(
       valid,
       durationMs,
     })
+
+    await logAudit(
+      await auditFromSession(req),
+      'provider.validate',
+      { type: 'provider', id: params.id },
+      { valid, providerType: provider.type },
+    )
 
     return NextResponse.json({ valid })
   } catch (err) {

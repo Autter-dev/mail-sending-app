@@ -4,6 +4,7 @@ import { apiKeys } from '@/lib/db/schema'
 import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
 import { createApiKeySchema } from '@/lib/validations/api-keys'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function GET() {
   const keys = await db
@@ -11,6 +12,7 @@ export async function GET() {
       id: apiKeys.id,
       name: apiKeys.name,
       lastUsedAt: apiKeys.lastUsedAt,
+      rateLimitPerMinute: apiKeys.rateLimitPerMinute,
       createdAt: apiKeys.createdAt,
     })
     .from(apiKeys)
@@ -45,8 +47,16 @@ export async function POST(req: NextRequest) {
     .returning({
       id: apiKeys.id,
       name: apiKeys.name,
+      rateLimitPerMinute: apiKeys.rateLimitPerMinute,
       createdAt: apiKeys.createdAt,
     })
+
+  await logAudit(
+    await auditFromSession(req),
+    'api_key.create',
+    { type: 'api_key', id: created.id },
+    { name: created.name },
+  )
 
   return NextResponse.json({ ...created, key: rawKey }, { status: 201 })
 }

@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { campaigns, lists, emailProviders } from '@/lib/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 const createCampaignSchema = z.object({
   name: z.string().min(1),
@@ -72,6 +73,13 @@ export async function POST(req: NextRequest) {
       providerId: defaultProvider?.id ?? null,
     })
     .returning()
+
+  await logAudit(
+    await auditFromSession(req),
+    'campaign.create',
+    { type: 'campaign', id: created.id },
+    { name: created.name, listId },
+  )
 
   return NextResponse.json(created, { status: 201 })
 }

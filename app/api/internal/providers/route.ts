@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { emailProviders } from '@/lib/db/schema'
 import { decrypt, encrypt } from '@/lib/encryption'
 import { createProviderSchema } from '@/lib/validations/providers'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 interface ProviderConfig {
   apiKey?: string
@@ -100,6 +101,13 @@ export async function POST(req: NextRequest) {
         rateLimitPerSecond: rateLimitPerSecond ?? 10,
       })
       .returning()
+
+    await logAudit(
+      await auditFromSession(req),
+      'provider.create',
+      { type: 'provider', id: created.id },
+      { name: created.name, providerType: created.type },
+    )
 
     return NextResponse.json(safeProviderView(created), { status: 201 })
   } catch (err) {
