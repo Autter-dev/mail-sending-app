@@ -235,7 +235,7 @@ export default function ProvidersPage() {
           <DialogTrigger asChild>
             <Button>Add Provider</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[480px]">
+          <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Email Provider</DialogTitle>
             </DialogHeader>
@@ -268,20 +268,101 @@ export default function ProvidersPage() {
               </div>
 
               {form.type === "resend" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="resend-api-key">API Key</Label>
-                  <Input
-                    id="resend-api-key"
-                    type="password"
-                    placeholder="re_..."
-                    value={form.apiKey}
-                    onChange={(e) => handleFormChange("apiKey", e.target.value)}
-                  />
-                </div>
+                <>
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-2">
+                    <p className="font-medium text-foreground">How to get your Resend API key</p>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      <li>
+                        Sign in at{" "}
+                        <a
+                          href="https://resend.com/api-keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-foreground"
+                        >
+                          resend.com/api-keys
+                        </a>
+                        .
+                      </li>
+                      <li>Click &quot;Create API Key&quot;, give it a name.</li>
+                      <li>
+                        Set permission to <span className="font-medium text-foreground">Full access</span>, or{" "}
+                        <span className="font-medium text-foreground">Sending access</span> if you only need to send.
+                      </li>
+                      <li>
+                        Verify your sending domain at{" "}
+                        <a
+                          href="https://resend.com/domains"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-foreground"
+                        >
+                          resend.com/domains
+                        </a>{" "}
+                        before sending.
+                      </li>
+                      <li>Copy the key (starts with re_) and paste it below. It is only shown once.</li>
+                    </ol>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="resend-api-key">API Key</Label>
+                    <Input
+                      id="resend-api-key"
+                      type="password"
+                      placeholder="re_..."
+                      value={form.apiKey}
+                      onChange={(e) => handleFormChange("apiKey", e.target.value)}
+                    />
+                  </div>
+                </>
               )}
 
               {form.type === "ses" && (
                 <>
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-2">
+                    <p className="font-medium text-foreground">How to get your AWS SES credentials</p>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      <li>
+                        Open the{" "}
+                        <a
+                          href="https://console.aws.amazon.com/iam/home#/users"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-foreground"
+                        >
+                          IAM Users console
+                        </a>{" "}
+                        and create a new user (programmatic access).
+                      </li>
+                      <li>
+                        Attach a policy with these permissions:
+                        <code className="block mt-1 p-2 bg-background rounded text-[11px] font-mono">
+                          ses:SendEmail, ses:SendRawEmail, ses:GetAccountSendingEnabled, ses:GetSendQuota
+                        </code>
+                        You can use the AWS-managed{" "}
+                        <span className="font-medium text-foreground">AmazonSESFullAccess</span> policy as a quick
+                        option.
+                      </li>
+                      <li>
+                        Under the user, go to{" "}
+                        <span className="font-medium text-foreground">Security credentials</span> and create an
+                        access key. Copy the Access Key ID and Secret Access Key.
+                      </li>
+                      <li>
+                        Verify your sending identity (domain or email) in the{" "}
+                        <a
+                          href="https://console.aws.amazon.com/ses/home#/verified-identities"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-foreground"
+                        >
+                          SES console
+                        </a>
+                        , and request production access to leave the sandbox.
+                      </li>
+                      <li>Use the same region where your identity is verified (for example, us-east-1).</li>
+                    </ol>
+                  </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="ses-access-key-id">Access Key ID</Label>
                     <Input
