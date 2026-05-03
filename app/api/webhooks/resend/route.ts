@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { campaignSends, campaignEvents, contacts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Webhook } from 'svix'
+import { suppressEmail } from '@/lib/suppressions'
 
 async function handleBounceOrComplaint(
   providerMessageId: string,
@@ -21,16 +22,26 @@ async function handleBounceOrComplaint(
     .set({ status: eventType === 'bounce' ? 'bounced' : 'failed' })
     .where(eq(campaignSends.id, send.id))
 
-  await db
+  const [contact] = await db
     .update(contacts)
     .set({ status: contactStatus })
     .where(eq(contacts.id, send.contactId))
+    .returning({ email: contacts.email })
 
   await db.insert(campaignEvents).values({
     campaignSendId: send.id,
     campaignId: send.campaignId,
     type: eventType,
   })
+
+  if (contact?.email) {
+    await suppressEmail({
+      email: contact.email,
+      reason: eventType === 'complaint' ? 'complaint' : 'bounce',
+      source: 'resend',
+      metadata: { providerMessageId, campaignId: send.campaignId, campaignSendId: send.id },
+    })
+  }
 }
 
 export async function POST(req: NextRequest) {

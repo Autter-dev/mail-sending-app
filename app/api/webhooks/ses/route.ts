@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { campaignSends, campaignEvents, contacts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { suppressEmail } from '@/lib/suppressions'
 
 async function handleBounceOrComplaint(
   providerMessageId: string,
   contactStatus: string,
-  eventType: string
+  eventType: string,
+  shouldSuppress: boolean
 ) {
   const [send] = await db
     .select()
@@ -20,16 +22,26 @@ async function handleBounceOrComplaint(
     .set({ status: eventType === 'bounce' ? 'bounced' : 'failed' })
     .where(eq(campaignSends.id, send.id))
 
-  await db
+  const [contact] = await db
     .update(contacts)
     .set({ status: contactStatus })
     .where(eq(contacts.id, send.contactId))
+    .returning({ email: contacts.email })
 
   await db.insert(campaignEvents).values({
     campaignSendId: send.id,
     campaignId: send.campaignId,
     type: eventType,
   })
+
+  if (shouldSuppress && contact?.email) {
+    await suppressEmail({
+      email: contact.email,
+      reason: eventType === 'complaint' ? 'complaint' : 'bounce',
+      source: 'ses',
+      metadata: { providerMessageId, campaignId: send.campaignId, campaignSendId: send.id },
+    })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -47,14 +59,16 @@ export async function POST(req: NextRequest) {
       if (message.notificationType === 'Bounce') {
         const messageId: string = message.mail.messageId
         const recipientCount: number = (message.bounce.bouncedRecipients as unknown[]).length
+        // Only Permanent bounces add to global suppressions. Transient bounces still flip per-list status.
+        const isPermanent: boolean = message.bounce.bounceType === 'Permanent'
         for (let i = 0; i < recipientCount; i++) {
-          await handleBounceOrComplaint(messageId, 'bounced', 'bounce')
+          await handleBounceOrComplaint(messageId, 'bounced', 'bounce', isPermanent)
         }
       } else if (message.notificationType === 'Complaint') {
         const messageId: string = message.mail.messageId
         const recipientCount: number = (message.complaint.complainedRecipients as unknown[]).length
         for (let i = 0; i < recipientCount; i++) {
-          await handleBounceOrComplaint(messageId, 'unsubscribed', 'complaint')
+          await handleBounceOrComplaint(messageId, 'unsubscribed', 'complaint', true)
         }
       }
     }

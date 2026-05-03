@@ -78,6 +78,15 @@ export const campaignEvents = pgTable('campaign_events', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const suppressions = pgTable('suppressions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  reason: text('reason').notNull(), // bounce | complaint | unsubscribe | manual | imported
+  source: text('source'),
+  metadata: jsonb('metadata').default({}).$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -123,4 +132,5 @@ export type Campaign = typeof campaigns.$inferSelect
 export type CampaignSend = typeof campaignSends.$inferSelect
 export type CampaignEvent = typeof campaignEvents.$inferSelect
 export type ApiKey = typeof apiKeys.$inferSelect
+export type Suppression = typeof suppressions.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect

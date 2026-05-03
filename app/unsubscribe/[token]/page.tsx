@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { contacts, lists, campaignSends, campaignEvents } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { suppressEmail } from '@/lib/suppressions'
 
 async function getContactByToken(token: string) {
   const result = await db
@@ -53,6 +54,13 @@ async function unsubscribeAction(formData: FormData) {
       type: 'unsubscribe',
     })
   }
+
+  await suppressEmail({
+    email: contact.email,
+    reason: 'unsubscribe',
+    source: 'unsubscribe-link',
+    metadata: { contactId: contact.id, listId: contact.listId },
+  })
 
   redirect(`/unsubscribe/${token}`)
 }
