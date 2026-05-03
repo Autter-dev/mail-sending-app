@@ -1,5 +1,5 @@
 import {
-  pgTable, uuid, text, timestamp, boolean, integer, jsonb, unique
+  pgTable, uuid, text, timestamp, boolean, integer, jsonb, unique, doublePrecision, index
 } from 'drizzle-orm/pg-core'
 
 export const lists = pgTable('lists', {
@@ -83,8 +83,28 @@ export const apiKeys = pgTable('api_keys', {
   name: text('name').notNull(),
   keyHash: text('key_hash').notNull().unique(),
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  rateLimitPerMinute: integer('rate_limit_per_minute').notNull().default(60),
+  rateLimitTokens: doublePrecision('rate_limit_tokens').notNull().default(60),
+  rateLimitUpdatedAt: timestamp('rate_limit_updated_at', { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  actorType: text('actor_type').notNull(), // user | api_key | system
+  actorId: text('actor_id'),
+  actorLabel: text('actor_label'),
+  action: text('action').notNull(),
+  resourceType: text('resource_type'),
+  resourceId: text('resource_id'),
+  metadata: jsonb('metadata').default({}).$type<Record<string, unknown>>(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdAtIdx: index('audit_logs_created_at_idx').on(t.createdAt),
+  resourceIdx: index('audit_logs_resource_idx').on(t.resourceType, t.resourceId),
+}))
 
 // Block type used in templateJson
 export type BlockType = 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer'
@@ -103,3 +123,4 @@ export type Campaign = typeof campaigns.$inferSelect
 export type CampaignSend = typeof campaignSends.$inferSelect
 export type CampaignEvent = typeof campaignEvents.$inferSelect
 export type ApiKey = typeof apiKeys.$inferSelect
+export type AuditLog = typeof auditLogs.$inferSelect

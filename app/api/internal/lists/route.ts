@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { lists, contacts } from '@/lib/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { createListSchema } from '@/lib/validations/lists'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function GET() {
   const rows = await db
@@ -46,6 +47,13 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
     })
     .returning()
+
+  await logAudit(
+    await auditFromSession(req),
+    'list.create',
+    { type: 'list', id: created.id },
+    { name: created.name },
+  )
 
   return NextResponse.json(created, { status: 201 })
 }

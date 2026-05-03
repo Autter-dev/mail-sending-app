@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { contacts } from '@/lib/db/schema'
 import { sql } from 'drizzle-orm'
 import { uploadConfirmSchema } from '@/lib/validations/lists'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 const s3 = new S3Client({
   region: process.env.S3_REGION!,
@@ -126,6 +127,13 @@ export async function POST(
       })
     processed += batch.length
   }
+
+  await logAudit(
+    await auditFromSession(request),
+    'contact.upsert_bulk',
+    { type: 'list', id: listId },
+    { inserted: processed, skipped, source: 'upload' },
+  )
 
   // We cannot distinguish inserts from updates without a returning clause diff,
   // so we report total processed as the combined count. Skipped rows had no email.

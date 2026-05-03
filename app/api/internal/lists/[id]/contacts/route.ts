@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { contacts } from '@/lib/db/schema'
 import { eq, ilike, and, count, SQL } from 'drizzle-orm'
 import { createContactSchema } from '@/lib/validations/contacts'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function GET(
   req: NextRequest,
@@ -77,6 +78,13 @@ export async function POST(
         metadata: parsed.data.metadata ?? {},
       })
       .returning()
+
+    await logAudit(
+      await auditFromSession(req),
+      'contact.create',
+      { type: 'contact', id: created.id },
+      { listId: params.id, email: created.email },
+    )
 
     return NextResponse.json(created, { status: 201 })
   } catch (e: unknown) {

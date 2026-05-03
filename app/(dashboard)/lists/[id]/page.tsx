@@ -24,6 +24,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/use-toast'
 
 interface ListInfo {
@@ -81,7 +87,63 @@ export default function ListDetailPage() {
   const [addFirstName, setAddFirstName] = useState('')
   const [addLastName, setAddLastName] = useState('')
   const [addSaving, setAddSaving] = useState(false)
+
+  const [gdprDeleteContact, setGdprDeleteContact] = useState<Contact | null>(null)
+  const [gdprConfirmEmail, setGdprConfirmEmail] = useState('')
+  const [gdprDeleting, setGdprDeleting] = useState(false)
+
   const { toast } = useToast()
+
+  async function handleGdprExport(contact: Contact) {
+    try {
+      const res = await fetch(`/api/internal/contacts/${contact.id}/gdpr-export`)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast({ title: data.error || 'Export failed', variant: 'destructive' })
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contact-${contact.id}-export.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast({ title: 'Export downloaded' })
+    } catch {
+      toast({ title: 'Export failed', variant: 'destructive' })
+    }
+  }
+
+  async function handleGdprDelete() {
+    if (!gdprDeleteContact) return
+    if (gdprConfirmEmail.trim().toLowerCase() !== gdprDeleteContact.email.toLowerCase()) {
+      toast({ title: 'Email confirmation does not match', variant: 'destructive' })
+      return
+    }
+    setGdprDeleting(true)
+    try {
+      const url = `/api/internal/contacts/${gdprDeleteContact.id}/gdpr-delete?confirm=${encodeURIComponent(gdprDeleteContact.email)}`
+      const res = await fetch(url, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast({ title: data.error || 'Delete failed', variant: 'destructive' })
+        return
+      }
+      toast({ title: 'Contact and all related data deleted' })
+      setGdprDeleteContact(null)
+      setGdprConfirmEmail('')
+      fetchContacts()
+      const listRes = await fetch(`/api/internal/lists/${listId}`)
+      if (listRes.ok) setListInfo(await listRes.json())
+    } catch {
+      toast({ title: 'Delete failed', variant: 'destructive' })
+    } finally {
+      setGdprDeleting(false)
+    }
+  }
 
   async function handleAddContact(e: React.FormEvent) {
     e.preventDefault()
@@ -365,18 +427,19 @@ export default function ListDetailPage() {
                     <TableHead>First Name</TableHead>
                     <TableHead>Last Name</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {contactsLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
+                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
                         Loading contacts...
                       </TableCell>
                     </TableRow>
                   ) : contacts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
+                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
                         {search
                           ? 'No contacts match your search.'
                           : `No ${tab} contacts in this list.`}
@@ -390,6 +453,30 @@ export default function ListDetailPage() {
                         <TableCell>{contact.lastName || '-'}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {format(new Date(contact.createdAt), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 px-2">
+                                <span aria-hidden>...</span>
+                                <span className="sr-only">Open contact actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => handleGdprExport(contact)}>
+                                Export GDPR data
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => {
+                                  setGdprDeleteContact(contact)
+                                  setGdprConfirmEmail('')
+                                }}
+                              >
+                                Delete (GDPR)
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -430,6 +517,51 @@ export default function ListDetailPage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <Dialog
+        open={gdprDeleteContact !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGdprDeleteContact(null)
+            setGdprConfirmEmail('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hard delete contact (GDPR)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p>
+              This will permanently delete <span className="font-mono">{gdprDeleteContact?.email}</span> and all associated send and engagement records. This cannot be undone.
+            </p>
+            <p className="text-muted-foreground">
+              Type the email below to confirm.
+            </p>
+            <Input
+              placeholder={gdprDeleteContact?.email ?? ''}
+              value={gdprConfirmEmail}
+              onChange={(e) => setGdprConfirmEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGdprDeleteContact(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={
+                gdprDeleting ||
+                !gdprDeleteContact ||
+                gdprConfirmEmail.trim().toLowerCase() !== gdprDeleteContact.email.toLowerCase()
+              }
+              onClick={handleGdprDelete}
+            >
+              {gdprDeleting ? 'Deleting...' : 'Delete permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

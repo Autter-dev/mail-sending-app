@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from '@/lib/providers/factory'
 import { renderTemplate, renderPlainText } from '@/lib/renderer'
 import { logger, trackEvent, trackError } from '@/lib/logger'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function POST(
   req: NextRequest,
@@ -181,6 +182,13 @@ export async function POST(
         { status: 500 }
       )
     }
+
+    await logAudit(
+      await auditFromSession(req),
+      'campaign.test_send',
+      { type: 'campaign', id: campaign.id },
+      { recipients: sent, failedCount: failed.length },
+    )
 
     return NextResponse.json({ success: true, sent, failed })
   } catch (err) {

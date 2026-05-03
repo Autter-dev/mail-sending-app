@@ -28,6 +28,7 @@ interface ApiKey {
   id: string
   name: string
   lastUsedAt: string | null
+  rateLimitPerMinute: number
   createdAt: string
 }
 
@@ -39,6 +40,11 @@ export default function ApiKeysPage() {
   const [name, setName] = useState("")
   const [saving, setSaving] = useState(false)
   const [newKey, setNewKey] = useState<string | null>(null)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editLimit, setEditLimit] = useState<string>("")
+  const [editSaving, setEditSaving] = useState(false)
+
   const { toast } = useToast()
 
   const fetchKeys = async () => {
@@ -91,6 +97,35 @@ export default function ApiKeysPage() {
       toast({ title: "Failed to delete key", variant: "destructive" })
     } finally {
       setDeleteId(null)
+    }
+  }
+
+  const handleSaveLimit = async () => {
+    if (!editingId) return
+    const value = parseInt(editLimit, 10)
+    if (Number.isNaN(value) || value < 1) {
+      toast({ title: "Enter a number greater than 0", variant: "destructive" })
+      return
+    }
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/internal/api-keys/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rateLimitPerMinute: value }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast({ title: data.error || "Failed to update rate limit", variant: "destructive" })
+        return
+      }
+      toast({ title: "Rate limit updated" })
+      setEditingId(null)
+      fetchKeys()
+    } catch {
+      toast({ title: "Failed to update rate limit", variant: "destructive" })
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -192,15 +227,28 @@ export default function ApiKeysPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Requests / min</TableHead>
               <TableHead>Last Used</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-20"></TableHead>
+              <TableHead className="w-32"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {keys.map((key) => (
               <TableRow key={key.id}>
                 <TableCell className="font-medium">{key.name}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingId(key.id)
+                      setEditLimit(String(key.rateLimitPerMinute))
+                    }}
+                  >
+                    {key.rateLimitPerMinute} / min
+                  </Button>
+                </TableCell>
                 <TableCell>
                   {key.lastUsedAt ? format(new Date(key.lastUsedAt), "MMM d, yyyy HH:mm") : "Never"}
                 </TableCell>
@@ -220,6 +268,37 @@ export default function ApiKeysPage() {
           </TableBody>
         </Table>
       )}
+
+      {/* Edit rate limit dialog */}
+      <Dialog open={editingId !== null} onOpenChange={(open) => { if (!open) setEditingId(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Rate Limit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="edit-limit">Requests per minute</Label>
+              <Input
+                id="edit-limit"
+                type="number"
+                min={1}
+                max={100000}
+                value={editLimit}
+                onChange={(e) => setEditLimit(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Token bucket capacity, refills at this rate per minute. The bucket is reset to full when you save.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+            <Button onClick={handleSaveLimit} disabled={editSaving}>
+              {editSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       <Dialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>

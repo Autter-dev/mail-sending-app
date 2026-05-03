@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { lists, contacts } from '@/lib/db/schema'
 import { eq, sql } from 'drizzle-orm'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function GET(
   _req: NextRequest,
@@ -33,9 +34,20 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const [list] = await db.select().from(lists).where(eq(lists.id, params.id))
   await db.delete(lists).where(eq(lists.id, params.id))
+
+  if (list) {
+    await logAudit(
+      await auditFromSession(req),
+      'list.delete',
+      { type: 'list', id: params.id },
+      { name: list.name },
+    )
+  }
+
   return NextResponse.json({ success: true })
 }
