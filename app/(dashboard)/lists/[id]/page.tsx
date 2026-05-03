@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/use-toast'
+import { DuplicatesTab } from '@/components/lists/DuplicatesTab'
 
 interface ListInfo {
   id: string
@@ -61,6 +62,7 @@ interface ContactsMeta {
 }
 
 type TabStatus = 'active' | 'bounced' | 'unsubscribed'
+type TabValue = TabStatus | 'duplicates'
 
 export default function ListDetailPage() {
   const params = useParams() as { id: string }
@@ -71,7 +73,8 @@ export default function ListDetailPage() {
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<TabStatus>('active')
+  const [activeTab, setActiveTab] = useState<TabValue>('active')
+  const [duplicateGroupCount, setDuplicateGroupCount] = useState<number | null>(null)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [meta, setMeta] = useState<ContactsMeta>({ page: 1, limit: 50, total: 0 })
   const [contactsLoading, setContactsLoading] = useState(false)
@@ -203,8 +206,27 @@ export default function ListDetailPage() {
     fetchList()
   }, [listId])
 
+  // Fetch duplicate group count for the badge
+  const fetchDuplicateCount = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/internal/lists/${listId}/duplicates`)
+      if (!res.ok) return
+      const json = await res.json()
+      setDuplicateGroupCount(json.meta?.groupCount ?? 0)
+    } catch {
+      // ignore
+    }
+  }, [listId])
+
+  useEffect(() => {
+    fetchDuplicateCount()
+  }, [fetchDuplicateCount])
+
   // Fetch contacts whenever tab, page, or search changes
   const fetchContacts = useCallback(async () => {
+    if (activeTab === 'duplicates') {
+      return
+    }
     setContactsLoading(true)
     try {
       const params = new URLSearchParams({
@@ -232,7 +254,7 @@ export default function ListDetailPage() {
   }, [fetchContacts])
 
   function handleTabChange(value: string) {
-    setActiveTab(value as TabStatus)
+    setActiveTab(value as TabValue)
     setPage(1)
     setSearchInput('')
     setSearch('')
@@ -398,6 +420,15 @@ export default function ListDetailPage() {
               {listInfo?.counts.unsubscribed ?? 0}
             </Badge>
           </TabsTrigger>
+          <TabsTrigger value="duplicates">
+            Duplicates
+            <Badge
+              variant={duplicateGroupCount && duplicateGroupCount > 0 ? 'destructive' : 'secondary'}
+              className="ml-2"
+            >
+              {duplicateGroupCount ?? 0}
+            </Badge>
+          </TabsTrigger>
         </TabsList>
 
         {(['active', 'bounced', 'unsubscribed'] as TabStatus[]).map((tab) => (
@@ -516,6 +547,21 @@ export default function ListDetailPage() {
             </div>
           </TabsContent>
         ))}
+
+        <TabsContent value="duplicates" className="space-y-4">
+          <DuplicatesTab
+            listId={listId}
+            onMergedChange={async () => {
+              await Promise.all([
+                (async () => {
+                  const listRes = await fetch(`/api/internal/lists/${listId}`)
+                  if (listRes.ok) setListInfo(await listRes.json())
+                })(),
+                fetchDuplicateCount(),
+              ])
+            }}
+          />
+        </TabsContent>
       </Tabs>
 
       <Dialog
