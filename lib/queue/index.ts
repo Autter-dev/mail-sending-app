@@ -10,7 +10,7 @@ export async function getQueue(): Promise<PgBoss> {
     })
     await boss.start()
     // Create queues if they don't exist (required in pg-boss v12+)
-    for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN, JOBS.SEND_CONFIRMATION_EMAIL]) {
+    for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN, JOBS.PURGE_AUDIT_LOGS, JOBS.SEND_CONFIRMATION_EMAIL]) {
       try {
         await boss.createQueue(queue)
       } catch (e: unknown) {
@@ -26,5 +26,6 @@ export const JOBS = {
   SEND_CAMPAIGN: 'send-campaign',
   SEND_EMAIL: 'send-email',
   FINALIZE_CAMPAIGN: 'finalize-campaign',
+  PURGE_AUDIT_LOGS: 'purge-audit-logs',
   SEND_CONFIRMATION_EMAIL: 'send-confirmation-email',
 } as const

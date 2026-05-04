@@ -88,3 +88,13 @@ export function auditFromApiKey(req: NextRequest, auth: ApiAuthContext): AuditCo
     ...meta,
   }
 }
+
+export function systemAuditCtx(req?: NextRequest, label = 'system'): AuditContext {
+  const meta = req ? extractRequestMeta(req) : { ipAddress: null, userAgent: null }
+  return {
+    actorType: 'system',
+    actorId: null,
+    actorLabel: label,
+    ...meta,
+  }
+}

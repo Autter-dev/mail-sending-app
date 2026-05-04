@@ -3,6 +3,7 @@ import { contacts, lists, campaignSends, campaignEvents } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { suppressEmail } from '@/lib/suppressions'
+import { logAudit, systemAuditCtx } from '@/lib/audit'
 
 async function getContactByToken(token: string) {
   const result = await db
@@ -61,6 +62,18 @@ async function unsubscribeAction(formData: FormData) {
     source: 'unsubscribe-link',
     metadata: { contactId: contact.id, listId: contact.listId },
   })
+
+  await logAudit(
+    systemAuditCtx(undefined, 'unsubscribe-link'),
+    'contact.unsubscribed',
+    { type: 'contact', id: contact.id },
+    {
+      email: contact.email,
+      listId: contact.listId,
+      source: 'one_click',
+      campaignId: recentSend[0]?.campaignId ?? null,
+    },
+  )
 
   redirect(`/unsubscribe/${token}`)
 }

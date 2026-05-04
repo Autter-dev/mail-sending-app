@@ -70,9 +70,12 @@ export async function suppressEmailsBulk(
   return { inserted, skipped: rows.length - inserted }
 }
 
-export async function unsuppressEmailById(id: string): Promise<boolean> {
-  const result = await db.delete(suppressions).where(eq(suppressions.id, id)).returning({ id: suppressions.id })
-  return result.length > 0
+export async function unsuppressEmailById(id: string): Promise<{ id: string; email: string } | null> {
+  const result = await db
+    .delete(suppressions)
+    .where(eq(suppressions.id, id))
+    .returning({ id: suppressions.id, email: suppressions.email })
+  return result[0] ?? null
 }
 
 export async function unsuppressEmail(email: string): Promise<boolean> {

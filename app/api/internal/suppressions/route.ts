@@ -4,6 +4,7 @@ import { suppressions } from '@/lib/db/schema'
 import { ilike, sql, desc } from 'drizzle-orm'
 import { createSuppressionSchema } from '@/lib/validations/suppressions'
 import { suppressEmail, normalizeEmail } from '@/lib/suppressions'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -53,5 +54,13 @@ export async function POST(req: NextRequest) {
   })
 
   const [row] = await db.select().from(suppressions).where(sql`${suppressions.email} = ${email}`).limit(1)
+
+  await logAudit(
+    await auditFromSession(req),
+    'suppression.create',
+    { type: 'suppression', id: row?.id ?? null },
+    { email, reason: parsed.data.reason ?? 'manual', source: parsed.data.source ?? 'manual' },
+  )
+
   return NextResponse.json(row, { status: 201 })
 }

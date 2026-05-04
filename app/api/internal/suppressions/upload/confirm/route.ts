@@ -3,6 +3,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import * as XLSX from 'xlsx'
 import { uploadConfirmSchema, SUPPRESSION_REASONS } from '@/lib/validations/suppressions'
 import { suppressEmailsBulk, type SuppressInput, type SuppressionReason } from '@/lib/suppressions'
+import { auditFromSession, logAudit } from '@/lib/audit'
 
 const s3 = new S3Client({
   region: process.env.S3_REGION!,
@@ -70,5 +71,18 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await suppressEmailsBulk(inputs)
+
+  await logAudit(
+    await auditFromSession(request),
+    'suppression.bulk_import',
+    { type: 'suppression', id: null },
+    {
+      filename: filename ?? null,
+      submitted: inputs.length,
+      inserted: result.inserted,
+      skipped: result.skipped,
+    },
+  )
+
   return NextResponse.json(result)
 }

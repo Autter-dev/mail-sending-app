@@ -48,17 +48,38 @@ export default function AuditLogPage() {
   const [actorType, setActorType] = useState<string>("")
   const [resourceType, setResourceType] = useState<string>("")
   const [actionFilter, setActionFilter] = useState<string>("")
+  const [fromDate, setFromDate] = useState<string>("")
+  const [toDate, setToDate] = useState<string>("")
   const [page, setPage] = useState(1)
+
+  function buildFilterParams(): URLSearchParams {
+    const params = new URLSearchParams()
+    if (actorType) params.set("actorType", actorType)
+    if (resourceType) params.set("resourceType", resourceType)
+    if (actionFilter) params.set("action", actionFilter)
+    if (fromDate) params.set("from", new Date(fromDate).toISOString())
+    if (toDate) {
+      const to = new Date(toDate)
+      to.setHours(23, 59, 59, 999)
+      params.set("to", to.toISOString())
+    }
+    return params
+  }
+
+  function handleExport() {
+    const params = buildFilterParams()
+    params.set("format", "csv")
+    window.location.href = `/api/internal/audit-logs?${params.toString()}`
+  }
 
   useEffect(() => {
     let cancelled = false
     async function fetchLogs() {
       setLoading(true)
       try {
-        const params = new URLSearchParams({ page: String(page), limit: "50" })
-        if (actorType) params.set("actorType", actorType)
-        if (resourceType) params.set("resourceType", resourceType)
-        if (actionFilter) params.set("action", actionFilter)
+        const params = buildFilterParams()
+        params.set("page", String(page))
+        params.set("limit", "50")
         const res = await fetch(`/api/internal/audit-logs?${params.toString()}`)
         if (!res.ok || cancelled) return
         const json = await res.json()
@@ -72,17 +93,23 @@ export default function AuditLogPage() {
     }
     fetchLogs()
     return () => { cancelled = true }
-  }, [page, actorType, resourceType, actionFilter])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, actorType, resourceType, actionFilter, fromDate, toDate])
 
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.limit))
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Audit Log</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Append-only record of every state-changing action.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold font-heading">Audit Log</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Append-only record of every state-changing action.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
+          Export CSV
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -123,7 +150,27 @@ export default function AuditLogPage() {
             className="w-56 h-9"
           />
         </div>
-        {(actorType || resourceType || actionFilter) && (
+        <div className="space-y-1">
+          <Label htmlFor="filter-from" className="text-xs">From</Label>
+          <Input
+            id="filter-from"
+            type="date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+            className="w-40 h-9"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="filter-to" className="text-xs">To</Label>
+          <Input
+            id="filter-to"
+            type="date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+            className="w-40 h-9"
+          />
+        </div>
+        {(actorType || resourceType || actionFilter || fromDate || toDate) && (
           <Button
             variant="ghost"
             size="sm"
@@ -131,6 +178,8 @@ export default function AuditLogPage() {
               setActorType("")
               setResourceType("")
               setActionFilter("")
+              setFromDate("")
+              setToDate("")
               setPage(1)
             }}
           >

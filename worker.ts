@@ -7,6 +7,8 @@ import { renderTemplate, renderPlainText } from './lib/renderer'
 import { JOBS } from './lib/queue'
 import { logger, trackEvent, trackError, shutdownTracking } from './lib/logger'
 import { isSuppressed } from './lib/suppressions'
+import { logAudit, systemAuditCtx } from './lib/audit'
+import { sql } from 'drizzle-orm'
 
 const APP_URL = process.env.APP_URL!
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
@@ -233,7 +235,7 @@ async function main() {
   logger.info('pg-boss started')
 
   // Create queues if they don't exist (required in pg-boss v12+)
-  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN, JOBS.SEND_CONFIRMATION_EMAIL]) {
+  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN, JOBS.SEND_CONFIRMATION_EMAIL, JOBS.PURGE_AUDIT_LOGS]) {
     try {
       await boss.createQueue(queue)
       logger.info({ queue }, 'Queue created')
@@ -266,6 +268,12 @@ async function main() {
             await db.update(campaignSends)
               .set({ status: 'failed', errorMessage })
               .where(eq(campaignSends.id, job.data.sendId))
+            await logAudit(
+              systemAuditCtx(undefined, 'worker'),
+              'campaign_send.failed',
+              { type: 'campaign_send', id: job.data.sendId },
+              { campaignId: job.data.campaignId, errorMessage },
+            )
           } catch (dbErr) {
             logger.error({ err: dbErr, sendId: job.data.sendId }, 'Failed to update send status after error')
           }
@@ -304,6 +312,27 @@ async function main() {
       logger.info({ campaignId }, 'Finalizing campaign')
       try {
         await db.update(campaigns).set({ status: 'sent', sentAt: new Date() }).where(eq(campaigns.id, campaignId))
+
+        const [stats] = await db
+          .select({
+            total: sql<number>`count(*)::int`,
+            sent: sql<number>`count(case when ${campaignSends.status} = 'sent' then 1 end)::int`,
+            failed: sql<number>`count(case when ${campaignSends.status} = 'failed' then 1 end)::int`,
+          })
+          .from(campaignSends)
+          .where(eq(campaignSends.campaignId, campaignId))
+
+        await logAudit(
+          systemAuditCtx(undefined, 'worker'),
+          'campaign.finalized',
+          { type: 'campaign', id: campaignId },
+          {
+            totalRecipients: stats?.total ?? 0,
+            sent: stats?.sent ?? 0,
+            failed: stats?.failed ?? 0,
+          },
+        )
+
         logger.info({ campaignId }, 'Campaign finalized successfully')
         trackEvent('campaign_finalized', { campaignId })
       } catch (err) {
@@ -312,6 +341,41 @@ async function main() {
       }
     }
   })
+
+  // Periodic audit log retention purge
+  await boss.work<Record<string, never>>(JOBS.PURGE_AUDIT_LOGS, async (jobs) => {
+    for (const job of jobs) {
+      const days = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS ?? '365', 10)
+      if (!Number.isFinite(days) || days <= 0) {
+        logger.info({ jobId: job.id, days }, 'Audit log retention disabled, skipping purge')
+        continue
+      }
+      logger.info({ jobId: job.id, days }, 'Purging audit logs')
+      try {
+        const result = await db.execute(sql`select * from audit_logs_retention_purge(${days}::int)`)
+        const rows = (result as unknown as { rows?: { deleted: number; cutoff: string }[] }).rows
+          ?? (Array.isArray(result) ? (result as { deleted: number; cutoff: string }[]) : [])
+        const row = rows[0]
+        await logAudit(
+          systemAuditCtx(undefined, 'retention'),
+          'audit.retention_purge',
+          { type: 'audit_log', id: null },
+          { deleted: row?.deleted ?? 0, cutoff: row?.cutoff ?? null, retentionDays: days },
+        )
+        logger.info({ deleted: row?.deleted, cutoff: row?.cutoff }, 'Audit log purge complete')
+      } catch (err) {
+        logger.error({ err }, 'Audit log purge failed')
+        trackError(err, { action: 'purge_audit_logs' })
+      }
+    }
+  })
+
+  try {
+    await boss.schedule(JOBS.PURGE_AUDIT_LOGS, '0 3 * * *', {}, { tz: 'UTC' })
+    logger.info('Audit log retention scheduled (daily 03:00 UTC)')
+  } catch (err) {
+    logger.warn({ err }, 'Failed to schedule audit log retention; will continue without it')
+  }
 
   logger.info('Worker ready, processing jobs')
   trackEvent('worker_started', { concurrency: CONCURRENCY })
