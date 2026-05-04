@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import * as XLSX from 'xlsx'
+import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
-import { contacts } from '@/lib/db/schema'
-import { sql } from 'drizzle-orm'
+import { contacts, lists } from '@/lib/db/schema'
+import { eq, sql } from 'drizzle-orm'
 import { uploadConfirmSchema } from '@/lib/validations/lists'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { getQueue, JOBS } from '@/lib/queue'
+import { logger } from '@/lib/logger'
 
 const s3 = new S3Client({
   region: process.env.S3_REGION!,
@@ -41,6 +44,12 @@ export async function POST(
   const { s3Key, mapping } = parsed.data
   const listId = params.id
 
+  const [list] = await db.select().from(lists).where(eq(lists.id, listId))
+  if (!list) {
+    return NextResponse.json({ error: 'List not found' }, { status: 404 })
+  }
+  const requireDoubleOptIn = list.requireDoubleOptIn
+
   // Fetch file from S3
   let buf: Buffer
   try {
@@ -66,6 +75,8 @@ export async function POST(
     firstName: string | null
     lastName: string | null
     metadata: Record<string, string>
+    status?: string
+    confirmationToken?: string | null
   }
 
   const validContacts: ContactInsert[] = []
@@ -106,14 +117,19 @@ export async function POST(
       firstName: firstName ? String(firstName) : null,
       lastName: lastName ? String(lastName) : null,
       metadata,
+      ...(requireDoubleOptIn
+        ? { status: 'pending', confirmationToken: randomUUID() }
+        : {}),
     })
   }
 
   // Upsert in batches of 500
-  let processed = 0
+  let inserted = 0
+  let updated = 0
+  const newContactIds: string[] = []
   for (let i = 0; i < validContacts.length; i += BATCH_SIZE) {
     const batch = validContacts.slice(i, i + BATCH_SIZE)
-    await db
+    const returned = await db
       .insert(contacts)
       .values(batch)
       .onConflictDoUpdate({
@@ -125,21 +141,40 @@ export async function POST(
           updatedAt: sql`now()`,
         },
       })
-    processed += batch.length
+      .returning({ id: contacts.id, isInsert: sql<boolean>`xmax = 0` })
+    for (const row of returned) {
+      if (row.isInsert) {
+        inserted++
+        if (requireDoubleOptIn) newContactIds.push(row.id)
+      } else {
+        updated++
+      }
+    }
+  }
+
+  if (requireDoubleOptIn && newContactIds.length > 0) {
+    try {
+      const queue = await getQueue()
+      await Promise.all(
+        newContactIds.map((contactId) =>
+          queue.send(JOBS.SEND_CONFIRMATION, { contactId }),
+        ),
+      )
+    } catch (err) {
+      logger.error({ err, listId, count: newContactIds.length }, 'Failed to enqueue confirmation jobs')
+    }
   }
 
   await logAudit(
     await auditFromSession(request),
     'contact.upsert_bulk',
     { type: 'list', id: listId },
-    { inserted: processed, skipped, source: 'upload' },
+    { inserted, updated, skipped, source: 'upload', requireDoubleOptIn },
   )
 
-  // We cannot distinguish inserts from updates without a returning clause diff,
-  // so we report total processed as the combined count. Skipped rows had no email.
   return NextResponse.json({
-    inserted: processed,
-    updated: 0,
+    inserted,
+    updated,
     skipped,
   })
 }

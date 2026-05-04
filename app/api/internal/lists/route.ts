@@ -13,10 +13,12 @@ export async function GET() {
       description: lists.description,
       createdAt: lists.createdAt,
       updatedAt: lists.updatedAt,
+      requireDoubleOptIn: lists.requireDoubleOptIn,
       total: sql<number>`cast(count(${contacts.id}) as int)`,
       active: sql<number>`cast(count(case when ${contacts.status} = 'active' then 1 end) as int)`,
       bounced: sql<number>`cast(count(case when ${contacts.status} = 'bounced' then 1 end) as int)`,
       unsubscribed: sql<number>`cast(count(case when ${contacts.status} = 'unsubscribed' then 1 end) as int)`,
+      pending: sql<number>`cast(count(case when ${contacts.status} = 'pending' then 1 end) as int)`,
     })
     .from(lists)
     .leftJoin(contacts, eq(contacts.listId, lists.id))
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
     .values({
       name: parsed.data.name,
       description: parsed.data.description,
+      requireDoubleOptIn: parsed.data.requireDoubleOptIn ?? false,
     })
     .returning()
 

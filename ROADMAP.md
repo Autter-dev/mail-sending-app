@@ -29,7 +29,7 @@ The features below build out the API surface so it's safe, observable, and compl
 - [ ] **Typed custom contact fields** [Effort: M]: Per-list field definitions with types (text, number, date, boolean) instead of freeform JSON metadata. Enables validation, filtering, and personalization with proper data types.
 - [ ] **Tags on contacts** [Effort: S]: Lightweight, multi-valued labels that can be applied to contacts manually or by automations. Used as filters in segments and as triggers in workflows.
 - [ ] **Segments** [Effort: M]: Saved filter queries against a list (e.g. "opened anything in the last 30 days, country = US"). Used as a campaign target instead of an entire list. Can be combined with tags, fields, and engagement signals.
-- [ ] **Double opt-in** [Effort: M]: Per-list toggle that requires new contacts to confirm via emailed link before being marked active. Confirmation page and token-based confirmation flow.
+- [x] **Double opt-in** [Effort: M]: Per-list toggle that requires new contacts to confirm via emailed link before being marked active. Confirmation page and token-based confirmation flow.
 - [ ] **Embeddable signup forms** [Effort: M]: Form builder, hosted form pages, and a JS embed snippet. Submissions flow into a list and respect double opt-in if enabled.
 - [ ] **Saved templates library** [Effort: S]: Reusable templates with thumbnails. Save any campaign as a template, start new campaigns from any template.
 - [ ] **Asset library** [Effort: M]: Central image and file manager. Upload once, browse and drop into any campaign editor. Replaces per-campaign image uploads.

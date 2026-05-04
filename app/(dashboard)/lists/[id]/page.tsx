@@ -37,11 +37,13 @@ interface ListInfo {
   id: string
   name: string
   description?: string
+  requireDoubleOptIn: boolean
   createdAt: string
   counts: {
     active: number
     bounced: number
     unsubscribed: number
+    pending: number
     total: number
   }
 }
@@ -61,7 +63,7 @@ interface ContactsMeta {
   total: number
 }
 
-type TabStatus = 'active' | 'bounced' | 'unsubscribed'
+type TabStatus = 'active' | 'pending' | 'bounced' | 'unsubscribed'
 type TabValue = TabStatus | 'duplicates'
 
 export default function ListDetailPage() {
@@ -94,6 +96,8 @@ export default function ListDetailPage() {
   const [gdprDeleteContact, setGdprDeleteContact] = useState<Contact | null>(null)
   const [gdprConfirmEmail, setGdprConfirmEmail] = useState('')
   const [gdprDeleting, setGdprDeleting] = useState(false)
+
+  const [togglingOptIn, setTogglingOptIn] = useState(false)
 
   const { toast } = useToast()
 
@@ -145,6 +149,36 @@ export default function ListDetailPage() {
       toast({ title: 'Delete failed', variant: 'destructive' })
     } finally {
       setGdprDeleting(false)
+    }
+  }
+
+  async function handleToggleDoubleOptIn() {
+    if (!listInfo) return
+    const next = !listInfo.requireDoubleOptIn
+    setTogglingOptIn(true)
+    try {
+      const res = await fetch(`/api/internal/lists/${listId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requireDoubleOptIn: next }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast({ title: data.error || 'Failed to update list', variant: 'destructive' })
+        return
+      }
+      const updated = await res.json()
+      setListInfo({ ...listInfo, requireDoubleOptIn: updated.requireDoubleOptIn })
+      toast({
+        title: next ? 'Double opt-in enabled' : 'Double opt-in disabled',
+        description: next
+          ? 'New contacts will be sent a confirmation email.'
+          : 'New contacts will be marked active immediately.',
+      })
+    } catch {
+      toast({ title: 'Failed to update list', variant: 'destructive' })
+    } finally {
+      setTogglingOptIn(false)
     }
   }
 
@@ -330,15 +364,49 @@ export default function ListDetailPage() {
           {listInfo?.description && (
             <p className="text-sm text-muted-foreground mt-1">{listInfo.description}</p>
           )}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="secondary">{listInfo?.counts.total ?? 0} total</Badge>
             <Badge variant="default">{listInfo?.counts.active ?? 0} active</Badge>
+            {(listInfo?.counts.pending ?? 0) > 0 && (
+              <Badge variant="outline">{listInfo?.counts.pending} pending</Badge>
+            )}
             {(listInfo?.counts.bounced ?? 0) > 0 && (
               <Badge variant="destructive">{listInfo?.counts.bounced} bounced</Badge>
             )}
             {(listInfo?.counts.unsubscribed ?? 0) > 0 && (
               <Badge variant="outline">{listInfo?.counts.unsubscribed} unsubscribed</Badge>
             )}
+          </div>
+          <div className="flex items-center gap-3 mt-3 rounded-md border bg-card px-3 py-2 max-w-md">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!listInfo?.requireDoubleOptIn}
+              disabled={togglingOptIn || !listInfo}
+              onClick={handleToggleDoubleOptIn}
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 ${
+                listInfo?.requireDoubleOptIn ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform ${
+                  listInfo?.requireDoubleOptIn ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+            <div className="text-sm">
+              <div className="font-medium">
+                Double opt-in {listInfo?.requireDoubleOptIn ? 'enabled' : 'disabled'}
+                {togglingOptIn && (
+                  <span className="ml-2 text-xs text-muted-foreground">Updating...</span>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {listInfo?.requireDoubleOptIn
+                  ? 'New contacts must confirm by email before they can be sent campaigns.'
+                  : 'New contacts are added as active and can receive campaigns immediately.'}
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -408,6 +476,12 @@ export default function ListDetailPage() {
               {listInfo?.counts.active ?? 0}
             </Badge>
           </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending
+            <Badge variant="secondary" className="ml-2">
+              {listInfo?.counts.pending ?? 0}
+            </Badge>
+          </TabsTrigger>
           <TabsTrigger value="bounced">
             Bounced
             <Badge variant="secondary" className="ml-2">
@@ -431,7 +505,7 @@ export default function ListDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        {(['active', 'bounced', 'unsubscribed'] as TabStatus[]).map((tab) => (
+        {(['active', 'pending', 'bounced', 'unsubscribed'] as TabStatus[]).map((tab) => (
           <TabsContent key={tab} value={tab} className="space-y-4">
             {/* Search bar */}
             <div className="flex items-center gap-2">

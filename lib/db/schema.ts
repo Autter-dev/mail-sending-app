@@ -6,6 +6,7 @@ export const lists = pgTable('lists', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   description: text('description'),
+  requireDoubleOptIn: boolean('require_double_opt_in').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -17,8 +18,9 @@ export const contacts = pgTable('contacts', {
   firstName: text('first_name'),
   lastName: text('last_name'),
   metadata: jsonb('metadata').default({}).$type<Record<string, string>>(),
-  status: text('status').notNull().default('active'), // active | bounced | unsubscribed
+  status: text('status').notNull().default('active'), // active | bounced | unsubscribed | pending
   unsubscribeToken: uuid('unsubscribe_token').notNull().defaultRandom().unique(),
+  confirmationToken: uuid('confirmation_token').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

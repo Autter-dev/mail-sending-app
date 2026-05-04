@@ -7,6 +7,7 @@ import { renderTemplate, renderPlainText } from './lib/renderer'
 import { JOBS } from './lib/queue'
 import { logger, trackEvent, trackError, shutdownTracking } from './lib/logger'
 import { isSuppressed } from './lib/suppressions'
+import { sendConfirmation } from './lib/email/sendConfirmation'
 
 const APP_URL = process.env.APP_URL!
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
@@ -159,7 +160,7 @@ async function main() {
   logger.info('pg-boss started')
 
   // Create queues if they don't exist (required in pg-boss v12+)
-  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN]) {
+  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN, JOBS.SEND_CONFIRMATION]) {
     try {
       await boss.createQueue(queue)
       logger.info({ queue }, 'Queue created')
@@ -212,6 +213,22 @@ async function main() {
       } catch (err) {
         logger.error({ err, campaignId }, 'Failed to finalize campaign')
         trackError(err, { action: 'finalize_campaign', campaignId })
+      }
+    }
+  })
+
+  // Send double opt-in confirmation emails
+  await boss.work<{ contactId: string }>(JOBS.SEND_CONFIRMATION, async (jobs) => {
+    for (const job of jobs) {
+      const { contactId } = job.data
+      logger.info({ contactId, jobId: job.id }, 'Processing confirmation send job')
+      try {
+        await sendConfirmation(contactId)
+        trackEvent('confirmation_email_sent', { contactId })
+      } catch (err) {
+        logger.error({ err, contactId, jobId: job.id }, 'Confirmation send job failed')
+        trackError(err, { action: 'send_confirmation', contactId })
+        throw err
       }
     }
   })

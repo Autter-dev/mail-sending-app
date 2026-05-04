@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Campaign creation, sending, scheduling, and cancellation
 - Open tracking (pixel) and click tracking (link wrapping) with per-campaign analytics
 - Unsubscribe page with one-click opt-out and List-Unsubscribe header support
+- Per-list double opt-in: toggle on a list to require new contacts to confirm via emailed link before they can be sent campaigns. Pending contacts are excluded from sends until confirmed. Configurable via `CONFIRMATION_FROM_EMAIL` env var and a switch on the list detail page.
 - Public REST API with Bearer token authentication
 - API key management in the dashboard
 - Webhook receivers for Resend and SES bounce/complaint notifications
