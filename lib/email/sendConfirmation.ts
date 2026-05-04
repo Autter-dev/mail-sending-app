@@ -4,12 +4,10 @@ import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from '@/lib/providers/factory'
 import { renderPlainText } from '@/lib/renderer'
 import { logger } from '@/lib/logger'
+import { getConfirmationSender } from '@/lib/settings'
 
 export async function sendConfirmation(contactId: string): Promise<void> {
-  const fromEmail = process.env.CONFIRMATION_FROM_EMAIL
-  if (!fromEmail) {
-    throw new Error('CONFIRMATION_FROM_EMAIL is not set')
-  }
+  const { fromEmail, fromName } = await getConfirmationSender()
 
   const appUrl = process.env.APP_URL
   if (!appUrl) {
@@ -85,7 +83,7 @@ export async function sendConfirmation(contactId: string): Promise<void> {
   const { messageId } = await adapter.send({
     to: contact.email,
     from: fromEmail,
-    fromName: appName,
+    fromName,
     subject,
     html,
     text: renderPlainText(html),

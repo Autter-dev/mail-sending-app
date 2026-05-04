@@ -186,6 +186,13 @@ export const forms = pgTable('forms', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const appSettings = pgTable('app_settings', {
+  id: text('id').primaryKey().default('singleton'),
+  confirmationFromEmail: text('confirmation_from_email'),
+  confirmationFromName: text('confirmation_from_name'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 // Drizzle inferred types
 export type List = typeof lists.$inferSelect
 export type Contact = typeof contacts.$inferSelect
@@ -199,3 +206,4 @@ export type AuditLog = typeof auditLogs.$inferSelect
 export type Asset = typeof assets.$inferSelect
 export type Template = typeof templates.$inferSelect
 export type Form = typeof forms.$inferSelect
+export type AppSettings = typeof appSettings.$inferSelect

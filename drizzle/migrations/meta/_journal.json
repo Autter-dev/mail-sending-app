@@ -8,6 +8,13 @@
       "when": 1777924481484,
       "tag": "0000_slimy_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777926630412,
+      "tag": "0001_glorious_timeslip",
+      "breakpoints": true
     }
   ]
 }
