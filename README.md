@@ -12,6 +12,7 @@ Self-hostable broadcast email tool. Manage contact lists, design emails with a v
 - **Campaign Sending** - Queue-based sending via pg-boss, with scheduling, cancellation, and per-provider rate limiting
 - **Open and Click Tracking** - Tracking pixel for opens, link wrapping for clicks, per-campaign analytics with charts
 - **Unsubscribe Handling** - One-click unsubscribe with List-Unsubscribe header support
+- **Signup Forms** - Build forms in the dashboard, share a hosted page or embed a JS snippet on any site, with optional double opt-in
 - **REST API** - Full API with Bearer token auth for programmatic access to lists, contacts, and campaign data
 - **Self-Contained** - Postgres for everything (data, queue, migrations). No Redis, no external queue. Optional MinIO/S3 for file uploads
 - **Docker Ready** - Single `docker compose up` for local development, production-ready Dockerfile included
@@ -168,6 +169,47 @@ Webhooks let Mailpost track bounces and complaints reported by the email provide
 2. Add an HTTPS subscription pointing to `https://your-domain.com/api/webhooks/ses`
 3. The endpoint will auto-confirm the subscription
 4. In SES, configure a Configuration Set to publish bounce and complaint notifications to the SNS topic
+
+## Signup Forms
+
+Forms turn your lists into something people can self-subscribe to. Each form is tied to a single list. Submissions create a contact in that list, respecting the global suppression list.
+
+### Creating a form
+
+1. Go to **Forms** in the sidebar and click **New Form**.
+2. Pick a name and a target list.
+3. In the builder, configure fields (email is required, plus any combination of text, checkbox, and select fields), set a success message or a redirect URL, and toggle double opt-in if you want a confirmation step.
+4. Save.
+
+### Sharing the form
+
+Each form has two surfaces:
+
+- **Hosted page**: `${APP_URL}/f/<form-id>`. Share the link directly or link from a navigation menu.
+- **JS embed snippet**: drop the snippet into any HTML page. The form renders inline and posts back to your Mailpost instance.
+
+```html
+<script
+  src="https://mail.example.com/api/public/forms/FORM_ID/embed.js"
+  data-form-id="FORM_ID"
+  async
+></script>
+```
+
+The embed renders the form via DOM injection so it inherits your site's styling. For maximum CSS isolation, add `data-mode="iframe"` and the snippet renders the hosted page inside an iframe instead.
+
+### Double opt-in
+
+When double opt-in is enabled, a submission creates a contact with status `pending` and queues a confirmation email through the chosen provider. The contact is not eligible for campaign sends until they click the link, which transitions them to `active` via `${APP_URL}/confirm/<token>`.
+
+The confirmation email is authored with the same block editor used for campaigns. Use the merge tag `{{confirm_url}}` in a button block. Tracking pixels and the unsubscribe footer are deliberately omitted from confirmation emails, since the contact has not opted in yet.
+
+### Suppression and abuse protection
+
+- Submitted emails are checked against the global suppression list before any contact is created. Suppressed emails get the same success response so the form can't be used to probe membership.
+- Each form is rate-limited per source IP.
+- A hidden honeypot field rejects bots silently.
+- Submissions use `application/x-www-form-urlencoded` so the embed avoids CORS preflights from third-party origins.
 
 ## Using AWS S3 Instead of MinIO
 

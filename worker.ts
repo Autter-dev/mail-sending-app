@@ -1,6 +1,6 @@
 import { PgBoss } from 'pg-boss'
 import { db } from './lib/db'
-import { campaigns, campaignSends, contacts, emailProviders } from './lib/db/schema'
+import { campaigns, campaignSends, contacts, emailProviders, forms } from './lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from './lib/providers/factory'
 import { renderTemplate, renderPlainText } from './lib/renderer'
@@ -147,6 +147,80 @@ async function processSendJob(sendId: string, campaignId: string) {
   trackEvent('email_send_complete', { sendId, campaignId, providerType: provider.type, durationMs })
 }
 
+async function processConfirmationJob(contactId: string, formId: string) {
+  logger.info({ contactId, formId }, 'Processing confirmation email job')
+
+  const [form] = await db.select().from(forms).where(eq(forms.id, formId))
+  if (!form) {
+    logger.warn({ contactId, formId }, 'Form not found, skipping confirmation send')
+    return
+  }
+
+  const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactId))
+  if (!contact) {
+    logger.warn({ contactId, formId }, 'Contact not found, skipping confirmation send')
+    return
+  }
+  if (contact.status !== 'pending' || !contact.confirmationToken) {
+    logger.info({ contactId, formId, status: contact.status }, 'Contact not pending, skipping confirmation send')
+    return
+  }
+
+  if (await isSuppressed(contact.email)) {
+    logger.warn({ contactId, contactEmail: contact.email }, 'Email suppressed, skipping confirmation send')
+    return
+  }
+
+  let provider = null
+  if (form.providerId) {
+    const rows = await db.select().from(emailProviders).where(eq(emailProviders.id, form.providerId))
+    provider = rows[0] ?? null
+  }
+  if (!provider) {
+    const rows = await db.select().from(emailProviders).where(eq(emailProviders.isDefault, true))
+    provider = rows[0] ?? null
+  }
+  if (!provider) {
+    logger.error({ contactId, formId }, 'No provider configured for confirmation email')
+    throw new Error('No provider configured')
+  }
+
+  const adapter = createProviderAdapter(provider.type, provider.configEncrypted)
+
+  const confirmUrl = `${APP_URL}/confirm/${contact.confirmationToken}`
+  const html = renderTemplate({
+    blocks: form.confirmationTemplateJson,
+    contact: {
+      email: contact.email,
+      first_name: contact.firstName || '',
+      last_name: contact.lastName || '',
+      confirm_url: confirmUrl,
+    },
+    sendId: '',
+    appUrl: APP_URL,
+    unsubscribeUrl: '',
+    disableTracking: true,
+    footerHtml: null,
+  })
+
+  const text = renderPlainText(html)
+
+  const fromEmail = form.fromEmail || ''
+  const fromName = form.fromName || ''
+
+  await adapter.send({
+    to: contact.email,
+    from: fromEmail,
+    fromName,
+    subject: form.confirmationSubject || 'Please confirm your subscription',
+    html,
+    text,
+  })
+
+  logger.info({ contactId, formId, contactEmail: contact.email }, 'Confirmation email sent')
+  trackEvent('form_confirmation_sent', { formId, contactId })
+}
+
 async function main() {
   logger.info({ concurrency: CONCURRENCY, appUrl: APP_URL }, 'Worker starting')
 
@@ -159,7 +233,7 @@ async function main() {
   logger.info('pg-boss started')
 
   // Create queues if they don't exist (required in pg-boss v12+)
-  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN]) {
+  for (const queue of [JOBS.SEND_EMAIL, JOBS.FINALIZE_CAMPAIGN, JOBS.SEND_CONFIRMATION_EMAIL]) {
     try {
       await boss.createQueue(queue)
       logger.info({ queue }, 'Queue created')
@@ -195,6 +269,29 @@ async function main() {
           } catch (dbErr) {
             logger.error({ err: dbErr, sendId: job.data.sendId }, 'Failed to update send status after error')
           }
+        }
+      }
+    }
+  )
+
+  // Send signup-form confirmation emails (transactional, double opt-in)
+  await boss.work<{ contactId: string; formId: string }>(
+    JOBS.SEND_CONFIRMATION_EMAIL,
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await processConfirmationJob(job.data.contactId, job.data.formId)
+        } catch (err) {
+          logger.error(
+            { err, contactId: job.data.contactId, formId: job.data.formId, jobId: job.id },
+            'Confirmation email job failed'
+          )
+          trackError(err, {
+            action: 'confirmation_email_job',
+            contactId: job.data.contactId,
+            formId: job.data.formId,
+          })
+          throw err
         }
       }
     }
