@@ -172,7 +172,7 @@ export function Sidebar() {
             <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <span className="text-lg font-bold font-heading text-foreground">Mailpost</span>
+        <span className="text-lg font-bold font-heading text-foreground">hedwig-mail</span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">

@@ -37,7 +37,7 @@ export async function updateAppSettings(patch: AppSettingsPatch): Promise<AppSet
 export async function getConfirmationSender(): Promise<{ fromEmail: string; fromName: string }> {
   const settings = await getAppSettings()
   const envFromEmail = process.env.CONFIRMATION_FROM_EMAIL?.trim() || null
-  const envFromName = process.env.APP_NAME?.trim() || 'Mailpost'
+  const envFromName = process.env.APP_NAME?.trim() || 'hedwig-mail'
 
   const fromEmail = settings.confirmationFromEmail?.trim() || envFromEmail
   if (!fromEmail) {

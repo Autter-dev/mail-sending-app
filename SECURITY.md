@@ -1,6 +1,6 @@
 # Security Policy
 
-Thanks for helping keep Mailpost and the people who use it safe.
+Thanks for helping keep hedwig-mail and the people who use it safe.
 
 ## Reporting a vulnerability
 
@@ -28,13 +28,13 @@ Please include:
 
 In scope:
 
-- The Mailpost application code in this repository.
+- The hedwig-mail application code in this repository.
 - The Docker images built from this repository.
 - Default configurations shipped in `docker-compose.yml` and `docker-compose.prod.yml`.
 
 Out of scope:
 
-- Vulnerabilities in third-party dependencies. Report those upstream. If a dependency CVE affects Mailpost in a non-trivial way, we still want to know.
+- Vulnerabilities in third-party dependencies. Report those upstream. If a dependency CVE affects hedwig-mail in a non-trivial way, we still want to know.
 - Self-hosted deployments where the operator misconfigured the environment (for example, running Postgres open to the internet). The production checklist in [SETUP.md](./SETUP.md#production-security-checklist) covers safe defaults.
 - Issues in email providers (Resend, SES) or the underlying delivery infrastructure.
 

@@ -57,7 +57,7 @@ Create `.env.local`:
 ```bash
 # App
 APP_URL=http://localhost:3000
-APP_NAME=Mailpost
+APP_NAME=hedwig-mail
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=changeme-use-openssl-rand-base64-32
 

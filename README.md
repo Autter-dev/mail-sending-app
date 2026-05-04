@@ -1,4 +1,4 @@
-# Mailpost
+# hedwig-mail
 
 Self-hostable broadcast email tool. Manage contact lists, design emails with a visual editor, send campaigns through Resend or Amazon SES, and track opens and clicks. No third-party email marketing platform required.
 
@@ -23,8 +23,8 @@ Self-hostable broadcast email tool. Manage contact lists, design emails with a v
 ## Quick Start with Docker
 
 ```bash
-git clone https://github.com/your-org/mailpost.git
-cd mailpost
+git clone https://github.com/your-org/hedwig-mail.git
+cd hedwig-mail
 cp .env.example .env.local
 ```
 
@@ -124,7 +124,7 @@ mc mb local/emailtool
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `APP_URL` | Public URL of the app (used in email links) | `http://localhost:3000` |
-| `APP_NAME` | Name shown in unsubscribe pages | `Mailpost` |
+| `APP_NAME` | Name shown in unsubscribe pages | `hedwig-mail` |
 | `NEXTAUTH_URL` | NextAuth callback URL | `http://localhost:3000` |
 | `NEXTAUTH_SECRET` | JWT signing secret | (required) |
 | `ADMIN_EMAIL` | Login email | `admin@example.com` |
@@ -160,7 +160,7 @@ mc mb local/emailtool
 
 ### Setting Up Webhooks
 
-Webhooks let Mailpost track bounces and complaints reported by the email provider.
+Webhooks let hedwig-mail track bounces and complaints reported by the email provider.
 
 **Resend:**
 1. Go to the Resend dashboard > Webhooks
@@ -211,7 +211,7 @@ Forms turn your lists into something people can self-subscribe to. Each form is 
 Each form has two surfaces:
 
 - **Hosted page**: `${APP_URL}/form/<form-id>`. Share the link directly or link from a navigation menu.
-- **JS embed snippet**: drop the snippet into any HTML page. The form renders inline and posts back to your Mailpost instance.
+- **JS embed snippet**: drop the snippet into any HTML page. The form renders inline and posts back to your hedwig-mail instance.
 
 ```html
 <script
@@ -320,20 +320,20 @@ curl -X POST \
 Build and run with the included Dockerfile:
 
 ```bash
-docker build -t mailpost .
-docker run -p 3000:3000 --env-file .env mailpost
+docker build -t hedwig-mail .
+docker run -p 3000:3000 --env-file .env hedwig-mail
 ```
 
 Run the worker as a separate container:
 
 ```bash
-docker run --env-file .env mailpost node -r tsx/cjs worker.ts
+docker run --env-file .env hedwig-mail node -r tsx/cjs worker.ts
 ```
 
 Run migrations before first start:
 
 ```bash
-docker run --env-file .env mailpost node -r tsx/cjs lib/db/migrate.ts
+docker run --env-file .env hedwig-mail node -r tsx/cjs lib/db/migrate.ts
 ```
 
 ### Railway
@@ -360,7 +360,7 @@ For a full beginner-friendly setup with `web` + `worker` + `postgres` + `minio`,
 Create a `fly.toml`:
 
 ```toml
-app = "mailpost"
+app = "hedwig-mail"
 primary_region = "iad"
 
 [build]
@@ -430,7 +430,7 @@ Pull requests welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for local setup,
 
 ## Sponsor
 
-Mailpost is sponsored by [Autter](https://autter.dev). Autter funds development and maintenance, but the project is open source under MIT and runs entirely on infrastructure you control.
+hedwig-mail is sponsored by [Autter](https://autter.dev). Autter funds development and maintenance, but the project is open source under MIT and runs entirely on infrastructure you control.
 
 ## License
 

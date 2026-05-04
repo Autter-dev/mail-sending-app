@@ -49,7 +49,7 @@ export default async function ConfirmPage({
   searchParams: { confirmed?: string }
 }) {
   const { token } = params
-  const appName = process.env.APP_NAME || 'Mailpost'
+  const appName = process.env.APP_NAME || 'hedwig-mail'
   const justConfirmed = searchParams.confirmed === '1'
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

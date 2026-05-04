@@ -54,7 +54,7 @@ function LoginForm() {
               <polyline points="22,6 12,13 2,6" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold font-heading text-foreground">Mailpost</h1>
+          <h1 className="text-2xl font-bold font-heading text-foreground">hedwig-mail</h1>
           <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
         </div>
 

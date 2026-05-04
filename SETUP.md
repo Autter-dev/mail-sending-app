@@ -31,8 +31,8 @@ Notes:
 This brings up the app, the worker, Postgres, and MinIO together.
 
 ```bash
-git clone <your-fork-url> mailpost
-cd mailpost
+git clone <your-fork-url> hedwig-mail
+cd hedwig-mail
 cp .env.example .env.local
 ```
 
@@ -129,8 +129,8 @@ This section covers deploying to a generic Linux VM (DigitalOcean, Hetzner, EC2,
 Clone the repo on the server and create the env file:
 
 ```bash
-git clone <your-fork-url> mailpost
-cd mailpost
+git clone <your-fork-url> hedwig-mail
+cd hedwig-mail
 cp .env.example .env
 ```
 
@@ -197,7 +197,7 @@ Railway runs the app and worker as separate services backed by a managed Postgre
 
 3. **Set environment variables on the app service:**
 
-   - `APP_URL`: the Railway-provided public URL of the app service (e.g. `https://mailpost-production.up.railway.app`). Update later if you add a custom domain.
+   - `APP_URL`: the Railway-provided public URL of the app service (e.g. `https://hedwig-mail-production.up.railway.app`). Update later if you add a custom domain.
    - `NEXTAUTH_URL`: same value as `APP_URL`.
    - `NEXTAUTH_SECRET`: from `openssl rand -base64 32`.
    - `ENCRYPTION_KEY`: from `openssl rand -hex 32`.

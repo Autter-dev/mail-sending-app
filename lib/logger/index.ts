@@ -30,7 +30,7 @@ export function trackEvent(event: string, properties?: Record<string, unknown>) 
   const ph = getPostHog()
   if (ph) {
     try {
-      ph.capture({ distinctId: 'mailpost-server', event, properties })
+      ph.capture({ distinctId: 'hedwig-mail-server', event, properties })
     } catch (err) {
       logger.warn({ err, event }, 'Failed to send event to PostHog')
     }
@@ -44,7 +44,7 @@ export function trackError(error: unknown, context?: Record<string, unknown>) {
   if (ph) {
     try {
       ph.capture({
-        distinctId: 'mailpost-server',
+        distinctId: 'hedwig-mail-server',
         event: 'server_error',
         properties: { error_message: message, error_stack: stack, ...context },
       })

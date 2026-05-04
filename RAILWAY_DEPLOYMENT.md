@@ -102,7 +102,7 @@ Replace:
 
 ```env
 APP_URL=<APP_URL>
-APP_NAME=Mailpost
+APP_NAME=hedwig-mail
 NEXTAUTH_URL=<APP_URL>
 NEXTAUTH_SECRET=<NEXTAUTH_SECRET>
 
@@ -137,7 +137,7 @@ Copy-paste block:
 
 ```env
 APP_URL=<APP_URL>
-APP_NAME=Mailpost
+APP_NAME=hedwig-mail
 NEXTAUTH_URL=<APP_URL>
 NEXTAUTH_SECRET=<NEXTAUTH_SECRET>
 

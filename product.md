@@ -1,8 +1,8 @@
-# Mailpost: Product Specification
+# hedwig-mail: Product Specification
 
 ## Overview
 
-Mailpost is an open source, self-hostable broadcast email tool. It lets a small team manage contact lists, design block-based emails, send broadcasts through their own Resend or Amazon SES account, and track engagement, all without depending on a hosted SaaS provider. The full stack runs from a single Postgres database and an S3-compatible object store, with no Redis or external queue.
+hedwig-mail is an open source, self-hostable broadcast email tool. It lets a small team manage contact lists, design block-based emails, send broadcasts through their own Resend or Amazon SES account, and track engagement, all without depending on a hosted SaaS provider. The full stack runs from a single Postgres database and an S3-compatible object store, with no Redis or external queue.
 
 ## Target users
 
@@ -118,9 +118,9 @@ The schema lives in `lib/db/schema.ts`. Twelve tables back the product:
 
 ## Out of scope
 
-- Multi-tenant accounts or per-user permissions. Mailpost is single-tenant by design.
+- Multi-tenant accounts or per-user permissions. hedwig-mail is single-tenant by design.
 - Deliverability monitoring beyond what bounce and complaint webhooks expose.
-- Transactional or per-user triggered email. Mailpost is a broadcast tool.
+- Transactional or per-user triggered email. hedwig-mail is a broadcast tool.
 - Shared inbox or reply handling. Replies go to whatever inbox the from address resolves to.
 - A hosted SaaS offering. Self-host only.
 

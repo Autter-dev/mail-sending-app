@@ -17,7 +17,7 @@ const body = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Mailpost",
+  title: "hedwig-mail",
   description: "Self-hosted broadcast email tool",
 }
 

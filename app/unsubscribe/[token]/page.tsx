@@ -84,7 +84,7 @@ export default async function UnsubscribePage({
   params: { token: string }
 }) {
   const { token } = params
-  const appName = process.env.APP_NAME || 'Mailpost'
+  const appName = process.env.APP_NAME || 'hedwig-mail'
 
   // Validate UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

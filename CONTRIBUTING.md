@@ -1,4 +1,4 @@
-# Contributing to Mailpost
+# Contributing to hedwig-mail
 
 Thanks for your interest in contributing. This guide covers the basics for getting set up and submitting changes.
 
@@ -13,8 +13,8 @@ Thanks for your interest in contributing. This guide covers the basics for getti
 1. Fork and clone the repository:
 
 ```bash
-git clone https://github.com/your-username/mailpost.git
-cd mailpost
+git clone https://github.com/your-username/hedwig-mail.git
+cd hedwig-mail
 ```
 
 2. Install dependencies:

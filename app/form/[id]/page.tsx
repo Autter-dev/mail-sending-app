@@ -20,7 +20,7 @@ export default async function HostedFormPage({
   if (!form) notFound()
 
   const embed = searchParams?.embed === '1'
-  const appName = process.env.APP_NAME || 'Mailpost'
+  const appName = process.env.APP_NAME || 'hedwig-mail'
 
   if (embed) {
     return (
