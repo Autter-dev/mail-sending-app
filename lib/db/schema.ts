@@ -17,8 +17,9 @@ export const contacts = pgTable('contacts', {
   firstName: text('first_name'),
   lastName: text('last_name'),
   metadata: jsonb('metadata').default({}).$type<Record<string, string>>(),
-  status: text('status').notNull().default('active'), // active | bounced | unsubscribed
+  status: text('status').notNull().default('active'), // active | pending | bounced | unsubscribed
   unsubscribeToken: uuid('unsubscribe_token').notNull().defaultRandom().unique(),
+  confirmationToken: uuid('confirmation_token').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
@@ -124,6 +125,35 @@ export interface Block {
   props: Record<string, unknown>
 }
 
+// Form field type used in forms.fields
+export type FormFieldType = 'email' | 'text' | 'checkbox' | 'select'
+
+export interface FormField {
+  id: string
+  key: string
+  label: string
+  type: FormFieldType
+  required: boolean
+  options?: string[]
+}
+
+export const forms = pgTable('forms', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  listId: uuid('list_id').notNull().references(() => lists.id, { onDelete: 'cascade' }),
+  providerId: uuid('provider_id').references(() => emailProviders.id),
+  fromName: text('from_name').notNull().default(''),
+  fromEmail: text('from_email').notNull().default(''),
+  fields: jsonb('fields').notNull().default([]).$type<FormField[]>(),
+  doubleOptIn: boolean('double_opt_in').notNull().default(false),
+  confirmationSubject: text('confirmation_subject').notNull().default(''),
+  confirmationTemplateJson: jsonb('confirmation_template_json').notNull().default([]).$type<Block[]>(),
+  successMessage: text('success_message').notNull().default('Thanks for subscribing.'),
+  redirectUrl: text('redirect_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 // Drizzle inferred types
 export type List = typeof lists.$inferSelect
 export type Contact = typeof contacts.$inferSelect
@@ -134,3 +164,4 @@ export type CampaignEvent = typeof campaignEvents.$inferSelect
 export type ApiKey = typeof apiKeys.$inferSelect
 export type Suppression = typeof suppressions.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
+export type Form = typeof forms.$inferSelect

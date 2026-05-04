@@ -19,3 +19,5 @@ All notable changes to this project will be documented in this file.
 - Dashboard with summary stats and recent campaigns
 - Docker Compose setup for local development (Postgres, MinIO, app, worker)
 - Production Dockerfile with standalone Next.js output
+- Embeddable signup forms with builder UI, hosted form pages at `/f/:id`, and a drop-in JS embed snippet
+- Optional double opt-in flow with `pending` contact status, confirmation token, transactional confirmation email job, and a confirmation page at `/confirm/:token`

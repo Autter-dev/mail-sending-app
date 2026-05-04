@@ -42,8 +42,10 @@ export function renderTemplate(options: {
   appUrl: string
   unsubscribeUrl: string
   rawHtml?: string | null
+  disableTracking?: boolean
+  footerHtml?: string | null
 }): string {
-  const { blocks, contact, sendId, appUrl, unsubscribeUrl, rawHtml } = options
+  const { blocks, contact, sendId, appUrl, unsubscribeUrl, rawHtml, disableTracking, footerHtml } = options
 
   // Defensive: ensure blocks is an array
   const safeBlocks = Array.isArray(blocks) ? blocks : []
@@ -81,15 +83,19 @@ export function renderTemplate(options: {
   const merged = template(contact)
   logger.info({ sendId, mergedLength: merged.length, mergedPreview: merged.substring(0, 300) }, 'renderTemplate: after Handlebars merge')
 
-  const withTracking = wrapLinks(merged, sendId, appUrl)
+  const withTracking = disableTracking ? merged : wrapLinks(merged, sendId, appUrl)
 
-  const trackingPixel = `<img src="${appUrl}/t/${sendId}" width="1" height="1" border="0" style="display:block;" />`
+  const trackingPixel = disableTracking
+    ? ''
+    : `<img src="${appUrl}/t/${sendId}" width="1" height="1" border="0" style="display:block;" />`
 
-  const unsubscribeFooter = `
+  const defaultUnsubscribeFooter = `
     <div style="text-align:center;padding:24px 0;font-family:sans-serif;font-size:12px;color:#9ca3af;">
       <a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
     </div>
   `
+  const resolvedFooter =
+    footerHtml === null ? '' : footerHtml !== undefined ? footerHtml : defaultUnsubscribeFooter
 
   // Check if rawHtml is a complete HTML document (has its own <html>/<body> tags)
   const isFullDocument = renderPath === 'rawHtml' && /<html[\s>]/i.test(withTracking)
@@ -100,7 +106,7 @@ export function renderTemplate(options: {
     // Just add tracking pixel before </body>, no extra wrapper or footer
     logger.info({ sendId }, 'renderTemplate: rawHtml is a full HTML document, sending as-is with tracking pixel')
     const bodyCloseIndex = withTracking.toLowerCase().lastIndexOf('</body>')
-    if (bodyCloseIndex !== -1) {
+    if (bodyCloseIndex !== -1 && trackingPixel) {
       full = withTracking.substring(0, bodyCloseIndex) + trackingPixel + withTracking.substring(bodyCloseIndex)
     } else {
       full = withTracking + trackingPixel
@@ -113,8 +119,8 @@ export function renderTemplate(options: {
         <tr><td align="center">
           <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;max-width:600px;">
             <tr><td>${withTracking}</td></tr>
-            <tr><td>${unsubscribeFooter}</td></tr>
-            <tr><td>${trackingPixel}</td></tr>
+            ${resolvedFooter ? `<tr><td>${resolvedFooter}</td></tr>` : ''}
+            ${trackingPixel ? `<tr><td>${trackingPixel}</td></tr>` : ''}
           </table>
         </td></tr>
       </table>
