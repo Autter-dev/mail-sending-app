@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Contact list management with CSV/XLSX import and column mapping
 - Email provider integration (Resend and Amazon SES) with encrypted credential storage
 - Visual block email editor with drag-and-drop, live preview, and merge tags
+- Asset library for centrally managing uploaded images and files, with reuse across campaigns via the editor's "Choose from library" picker
 - Campaign creation, sending, scheduling, and cancellation
 - Open tracking (pixel) and click tracking (link wrapping) with per-campaign analytics
 - Unsubscribe page with one-click opt-out and List-Unsubscribe header support

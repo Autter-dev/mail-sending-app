@@ -8,6 +8,7 @@ Self-hostable broadcast email tool. Manage contact lists, design emails with a v
 
 - **Contact Management** - Import contacts via CSV/XLSX upload, organize into lists, track subscription status
 - **Visual Email Editor** - Drag-and-drop block editor with live preview, mobile/desktop toggle, and merge tag support
+- **Asset Library** - Upload images and files once, browse and reuse them across campaigns from a central library
 - **Multiple Email Providers** - Send through Resend or Amazon SES with encrypted credential storage
 - **Campaign Sending** - Queue-based sending via pg-boss, with scheduling, cancellation, and per-provider rate limiting
 - **Open and Click Tracking** - Tracking pixel for opens, link wrapping for clicks, per-campaign analytics with charts

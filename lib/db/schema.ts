@@ -115,6 +115,24 @@ export const auditLogs = pgTable('audit_logs', {
   resourceIdx: index('audit_logs_resource_idx').on(t.resourceType, t.resourceId),
 }))
 
+export const assets = pgTable('assets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  fileId: text('file_id').notNull().unique(),
+  name: text('name').notNull(),
+  originalName: text('original_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  s3Key: text('s3_key').notNull(),
+  kind: text('kind').notNull(), // image | file
+  width: integer('width'),
+  height: integer('height'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  kindIdx: index('assets_kind_idx').on(t.kind),
+  createdIdx: index('assets_created_idx').on(t.createdAt),
+}))
+
 // Block type used in templateJson
 export type BlockType = 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer'
 
@@ -134,3 +152,4 @@ export type CampaignEvent = typeof campaignEvents.$inferSelect
 export type ApiKey = typeof apiKeys.$inferSelect
 export type Suppression = typeof suppressions.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
+export type Asset = typeof assets.$inferSelect

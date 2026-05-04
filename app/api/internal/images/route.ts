@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadFile } from '@/lib/storage'
+import { db } from '@/lib/db'
+import { assets } from '@/lib/db/schema'
 import { nanoid } from 'nanoid'
 
 // Allow file uploads up to 10MB
@@ -38,6 +40,16 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
     await uploadFile(key, buffer, file.type)
+
+    await db.insert(assets).values({
+      fileId,
+      name: file.name,
+      originalName: file.name,
+      mimeType: file.type,
+      size: file.size,
+      s3Key: key,
+      kind: 'image',
+    })
 
     // Public URL served through our proxy route (no expiry, clean URL)
     const appUrl = process.env.APP_URL || 'http://localhost:3000'

@@ -32,7 +32,7 @@ The features below build out the API surface so it's safe, observable, and compl
 - [ ] **Double opt-in** [Effort: M]: Per-list toggle that requires new contacts to confirm via emailed link before being marked active. Confirmation page and token-based confirmation flow.
 - [ ] **Embeddable signup forms** [Effort: M]: Form builder, hosted form pages, and a JS embed snippet. Submissions flow into a list and respect double opt-in if enabled.
 - [ ] **Saved templates library** [Effort: S]: Reusable templates with thumbnails. Save any campaign as a template, start new campaigns from any template.
-- [ ] **Asset library** [Effort: M]: Central image and file manager. Upload once, browse and drop into any campaign editor. Replaces per-campaign image uploads.
+- [x] **Asset library** [Effort: M]: Central image and file manager. Upload once, browse and drop into any campaign editor. Replaces per-campaign image uploads.
 - [ ] **A/B testing** [Effort: M]: Subject line and content variants on a campaign. Send variants to a test sample, pick the winner by open or click rate, and send the winner to the rest.
 - [ ] **Reply-to and reply forwarding** [Effort: S]: Configurable reply-to address per campaign with optional forwarding to a real mailbox. Avoids no-reply senders without building a full inbox.
 - [ ] **Transactional API and templates** [Effort: M]: Endpoint for high-volume one-off sends like password resets and receipts, using stored templates with variable substitution. Bypasses the campaign and list machinery and reports separately.
