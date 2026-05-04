@@ -3,8 +3,41 @@ CREATE TABLE "api_keys" (
 	"name" text NOT NULL,
 	"key_hash" text NOT NULL,
 	"last_used_at" timestamp with time zone,
+	"rate_limit_per_minute" integer DEFAULT 60 NOT NULL,
+	"rate_limit_tokens" double precision DEFAULT 60 NOT NULL,
+	"rate_limit_updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "api_keys_key_hash_unique" UNIQUE("key_hash")
+);
+--> statement-breakpoint
+CREATE TABLE "assets" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"file_id" text NOT NULL,
+	"name" text NOT NULL,
+	"original_name" text NOT NULL,
+	"mime_type" text NOT NULL,
+	"size" integer NOT NULL,
+	"s3_key" text NOT NULL,
+	"kind" text NOT NULL,
+	"width" integer,
+	"height" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "assets_file_id_unique" UNIQUE("file_id")
+);
+--> statement-breakpoint
+CREATE TABLE "audit_logs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"actor_type" text NOT NULL,
+	"actor_id" text,
+	"actor_label" text,
+	"action" text NOT NULL,
+	"resource_type" text,
+	"resource_id" text,
+	"metadata" jsonb DEFAULT '{}'::jsonb,
+	"ip_address" text,
+	"user_agent" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "campaign_events" (
@@ -58,9 +91,11 @@ CREATE TABLE "contacts" (
 	"metadata" jsonb DEFAULT '{}'::jsonb,
 	"status" text DEFAULT 'active' NOT NULL,
 	"unsubscribe_token" uuid DEFAULT gen_random_uuid() NOT NULL,
+	"confirmation_token" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "contacts_unsubscribe_token_unique" UNIQUE("unsubscribe_token"),
+	CONSTRAINT "contacts_confirmation_token_unique" UNIQUE("confirmation_token"),
 	CONSTRAINT "contacts_list_id_email_unique" UNIQUE("list_id","email")
 );
 --> statement-breakpoint
@@ -74,10 +109,51 @@ CREATE TABLE "email_providers" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "forms" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"list_id" uuid NOT NULL,
+	"provider_id" uuid,
+	"from_name" text DEFAULT '' NOT NULL,
+	"from_email" text DEFAULT '' NOT NULL,
+	"fields" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"double_opt_in" boolean DEFAULT false NOT NULL,
+	"confirmation_subject" text DEFAULT '' NOT NULL,
+	"confirmation_template_json" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"success_message" text DEFAULT 'Thanks for subscribing.' NOT NULL,
+	"redirect_url" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "lists" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
+	"require_double_opt_in" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "suppressions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"email" text NOT NULL,
+	"reason" text NOT NULL,
+	"source" text,
+	"metadata" jsonb DEFAULT '{}'::jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "suppressions_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
+CREATE TABLE "templates" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"subject" text DEFAULT '' NOT NULL,
+	"from_name" text DEFAULT '' NOT NULL,
+	"from_email" text DEFAULT '' NOT NULL,
+	"template_json" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"template_html" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -88,4 +164,10 @@ ALTER TABLE "campaign_sends" ADD CONSTRAINT "campaign_sends_campaign_id_campaign
 ALTER TABLE "campaign_sends" ADD CONSTRAINT "campaign_sends_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaigns" ADD CONSTRAINT "campaigns_list_id_lists_id_fk" FOREIGN KEY ("list_id") REFERENCES "public"."lists"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaigns" ADD CONSTRAINT "campaigns_provider_id_email_providers_id_fk" FOREIGN KEY ("provider_id") REFERENCES "public"."email_providers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "contacts" ADD CONSTRAINT "contacts_list_id_lists_id_fk" FOREIGN KEY ("list_id") REFERENCES "public"."lists"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "contacts" ADD CONSTRAINT "contacts_list_id_lists_id_fk" FOREIGN KEY ("list_id") REFERENCES "public"."lists"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "forms" ADD CONSTRAINT "forms_list_id_lists_id_fk" FOREIGN KEY ("list_id") REFERENCES "public"."lists"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "forms" ADD CONSTRAINT "forms_provider_id_email_providers_id_fk" FOREIGN KEY ("provider_id") REFERENCES "public"."email_providers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "assets_kind_idx" ON "assets" USING btree ("kind");--> statement-breakpoint
+CREATE INDEX "assets_created_idx" ON "assets" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "audit_logs_created_at_idx" ON "audit_logs" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "audit_logs_resource_idx" ON "audit_logs" USING btree ("resource_type","resource_id");

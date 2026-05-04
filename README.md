@@ -345,6 +345,8 @@ docker run --env-file .env mailpost node -r tsx/cjs lib/db/migrate.ts
 5. For the worker, create a second service from the same repo with start command: `node -r tsx/cjs worker.ts`
 6. For S3, use an external service (AWS S3, Cloudflare R2, etc.)
 
+For a full beginner-friendly setup with `web` + `worker` + `postgres` + `minio`, use [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md).
+
 ### Render
 
 1. Create a new Web Service from your repository
