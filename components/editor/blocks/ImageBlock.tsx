@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { AssetPicker } from '@/components/editor/AssetPicker'
 
 interface BlockEditorProps {
   props: Record<string, unknown>
@@ -16,6 +17,7 @@ export function ImageBlock({ props, onChange }: BlockEditorProps) {
   const width = (props.width as string) ?? '100%'
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleFileUpload(file: File) {
@@ -103,6 +105,22 @@ export function ImageBlock({ props, onChange }: BlockEditorProps) {
           <p className="text-xs text-red-500 mt-1">{uploadError}</p>
         )}
       </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={() => setPickerOpen(true)}
+      >
+        Choose from library
+      </Button>
+
+      <AssetPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        kind="image"
+        onSelect={(asset) => onChange({ ...props, src: asset.url })}
+      />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
