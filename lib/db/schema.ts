@@ -87,6 +87,19 @@ export const suppressions = pgTable('suppressions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const templates = pgTable('templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  subject: text('subject').notNull().default(''),
+  fromName: text('from_name').notNull().default(''),
+  fromEmail: text('from_email').notNull().default(''),
+  templateJson: jsonb('template_json').notNull().default([]).$type<Block[]>(),
+  templateHtml: text('template_html'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -134,3 +147,4 @@ export type CampaignEvent = typeof campaignEvents.$inferSelect
 export type ApiKey = typeof apiKeys.$inferSelect
 export type Suppression = typeof suppressions.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
+export type Template = typeof templates.$inferSelect
