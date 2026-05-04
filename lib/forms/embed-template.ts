@@ -24,7 +24,7 @@ export function buildEmbedScript(appUrl: string): string {
 
   if (mode === 'iframe') {
     var iframe = document.createElement('iframe');
-    iframe.src = APP_URL + '/f/' + formId + '?embed=1';
+    iframe.src = APP_URL + '/form/' + formId + '?embed=1';
     iframe.style.cssText = 'width:100%;border:0;min-height:420px;';
     iframe.setAttribute('title', 'Subscribe form');
     container.appendChild(iframe);

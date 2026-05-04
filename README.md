@@ -210,7 +210,7 @@ Forms turn your lists into something people can self-subscribe to. Each form is 
 
 Each form has two surfaces:
 
-- **Hosted page**: `${APP_URL}/f/<form-id>`. Share the link directly or link from a navigation menu.
+- **Hosted page**: `${APP_URL}/form/<form-id>`. Share the link directly or link from a navigation menu.
 - **JS embed snippet**: drop the snippet into any HTML page. The form renders inline and posts back to your Mailpost instance.
 
 ```html

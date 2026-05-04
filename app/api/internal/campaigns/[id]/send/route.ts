@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { campaigns, campaignSends, contacts, suppressions } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { getQueue, JOBS } from '@/lib/queue'
-import { logger, trackEvent, trackError } from '@/lib/logger'
+import { logger, trackEvent } from '@/lib/logger'
 import { auditFromSession, logAudit } from '@/lib/audit'
 
 export async function POST(

@@ -54,7 +54,7 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
   )
   const [saving, setSaving] = useState(false)
 
-  const hostedUrl = `${appUrl}/f/${form.id}`
+  const hostedUrl = `${appUrl}/form/${form.id}`
   const embedSnippet = `<script src="${appUrl}/api/public/forms/${form.id}/embed.js" data-form-id="${form.id}" async></script>`
   const iframeSnippet = `<script src="${appUrl}/api/public/forms/${form.id}/embed.js" data-form-id="${form.id}" data-mode="iframe" async></script>`
 
