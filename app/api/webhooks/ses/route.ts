@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { campaignSends, campaignEvents, contacts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { suppressEmail } from '@/lib/suppressions'
+import { logAudit, systemAuditCtx } from '@/lib/audit'
 
 async function handleBounceOrComplaint(
   providerMessageId: string,
@@ -26,13 +27,22 @@ async function handleBounceOrComplaint(
     .update(contacts)
     .set({ status: contactStatus })
     .where(eq(contacts.id, send.contactId))
-    .returning({ email: contacts.email })
+    .returning({ id: contacts.id, email: contacts.email })
 
   await db.insert(campaignEvents).values({
     campaignSendId: send.id,
     campaignId: send.campaignId,
     type: eventType,
   })
+
+  if (contact?.id) {
+    await logAudit(
+      systemAuditCtx(undefined, 'webhook:ses'),
+      eventType === 'bounce' ? 'contact.bounced' : 'contact.complained',
+      { type: 'contact', id: contact.id },
+      { providerMessageId, campaignId: send.campaignId, campaignSendId: send.id, source: 'ses' },
+    )
+  }
 
   if (shouldSuppress && contact?.email) {
     await suppressEmail({
@@ -41,6 +51,17 @@ async function handleBounceOrComplaint(
       source: 'ses',
       metadata: { providerMessageId, campaignId: send.campaignId, campaignSendId: send.id },
     })
+
+    await logAudit(
+      systemAuditCtx(undefined, 'webhook:ses'),
+      'suppression.auto_create',
+      { type: 'suppression', id: null },
+      {
+        email: contact.email,
+        reason: eventType === 'complaint' ? 'complaint' : 'bounce',
+        source: 'webhook:ses',
+      },
+    )
   }
 }
 

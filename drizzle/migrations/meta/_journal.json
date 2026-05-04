@@ -15,6 +15,13 @@
       "when": 1777752836747,
       "tag": "0001_woozy_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778025600000,
+      "tag": "0002_audit_log_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -4,11 +4,13 @@ import { campaignSends, campaignEvents, contacts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Webhook } from 'svix'
 import { suppressEmail } from '@/lib/suppressions'
+import { logAudit, systemAuditCtx } from '@/lib/audit'
 
 async function handleBounceOrComplaint(
   providerMessageId: string,
   contactStatus: string,
-  eventType: string
+  eventType: string,
+  source: string,
 ) {
   const [send] = await db
     .select()
@@ -26,7 +28,7 @@ async function handleBounceOrComplaint(
     .update(contacts)
     .set({ status: contactStatus })
     .where(eq(contacts.id, send.contactId))
-    .returning({ email: contacts.email })
+    .returning({ id: contacts.id, email: contacts.email })
 
   await db.insert(campaignEvents).values({
     campaignSendId: send.id,
@@ -34,13 +36,33 @@ async function handleBounceOrComplaint(
     type: eventType,
   })
 
+  if (contact?.id) {
+    await logAudit(
+      systemAuditCtx(undefined, `webhook:${source}`),
+      eventType === 'bounce' ? 'contact.bounced' : 'contact.complained',
+      { type: 'contact', id: contact.id },
+      { providerMessageId, campaignId: send.campaignId, campaignSendId: send.id, source },
+    )
+  }
+
   if (contact?.email) {
     await suppressEmail({
       email: contact.email,
       reason: eventType === 'complaint' ? 'complaint' : 'bounce',
-      source: 'resend',
+      source,
       metadata: { providerMessageId, campaignId: send.campaignId, campaignSendId: send.id },
     })
+
+    await logAudit(
+      systemAuditCtx(undefined, `webhook:${source}`),
+      'suppression.auto_create',
+      { type: 'suppression', id: null },
+      {
+        email: contact.email,
+        reason: eventType === 'complaint' ? 'complaint' : 'bounce',
+        source: `webhook:${source}`,
+      },
+    )
   }
 }
 
@@ -64,9 +86,9 @@ export async function POST(req: NextRequest) {
     const { type, data } = event
 
     if (type === 'email.bounced') {
-      await handleBounceOrComplaint(data.email_id, 'bounced', 'bounce')
+      await handleBounceOrComplaint(data.email_id, 'bounced', 'bounce', 'resend')
     } else if (type === 'email.complained') {
-      await handleBounceOrComplaint(data.email_id, 'unsubscribed', 'complaint')
+      await handleBounceOrComplaint(data.email_id, 'unsubscribed', 'complaint', 'resend')
     }
 
     return NextResponse.json({ received: true })
