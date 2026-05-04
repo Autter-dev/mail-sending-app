@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
-import { contacts } from '@/lib/db/schema'
-import { sql } from 'drizzle-orm'
+import { contacts, lists } from '@/lib/db/schema'
+import { eq, sql } from 'drizzle-orm'
 import { withApiAuth } from '@/lib/api-auth'
 import { bulkContactsSchema } from '@/lib/validations/contacts'
 import { auditFromApiKey, logAudit } from '@/lib/audit'
+import { getQueue, JOBS } from '@/lib/queue'
+import { logger } from '@/lib/logger'
 
 export async function POST(
   req: NextRequest,
@@ -26,9 +29,16 @@ export async function POST(
       )
     }
 
+    const [list] = await db.select().from(lists).where(eq(lists.id, params.listId))
+    if (!list) {
+      return NextResponse.json({ error: 'List not found', data: null, meta: {} }, { status: 404 })
+    }
+    const requireDoubleOptIn = list.requireDoubleOptIn
+
     let inserted = 0
-    const updated = 0
+    let updated = 0
     let skipped = 0
+    const newContactIds: string[] = []
 
     const batchSize = 500
     const items = parsed.data.contacts
@@ -41,6 +51,9 @@ export async function POST(
         firstName: c.firstName,
         lastName: c.lastName,
         metadata: c.metadata ?? {},
+        ...(requireDoubleOptIn
+          ? { status: 'pending', confirmationToken: randomUUID() }
+          : {}),
       }))
 
       try {
@@ -56,12 +69,31 @@ export async function POST(
               updatedAt: new Date(),
             },
           })
-          .returning({ id: contacts.id })
+          .returning({ id: contacts.id, isInsert: sql<boolean>`xmax = 0` })
 
-        // Approximate: all returned rows are either inserted or updated
-        inserted += result.length
+        for (const row of result) {
+          if (row.isInsert) {
+            inserted++
+            if (requireDoubleOptIn) newContactIds.push(row.id)
+          } else {
+            updated++
+          }
+        }
       } catch {
         skipped += batch.length
+      }
+    }
+
+    if (requireDoubleOptIn && newContactIds.length > 0) {
+      try {
+        const queue = await getQueue()
+        await Promise.all(
+          newContactIds.map((contactId) =>
+            queue.send(JOBS.SEND_CONFIRMATION, { contactId }),
+          ),
+        )
+      } catch (err) {
+        logger.error({ err, listId: params.listId, count: newContactIds.length }, 'Failed to enqueue confirmation jobs')
       }
     }
 
@@ -69,7 +101,7 @@ export async function POST(
       auditFromApiKey(req, auth),
       'contact.upsert_bulk',
       { type: 'list', id: params.listId },
-      { inserted, updated, skipped, total: items.length },
+      { inserted, updated, skipped, total: items.length, requireDoubleOptIn },
     )
 
     return NextResponse.json({

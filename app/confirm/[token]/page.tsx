@@ -3,31 +3,35 @@ import { contacts, lists } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
-async function findContact(token: string) {
-  const [row] = await db
+async function getContactByConfirmationToken(token: string) {
+  const result = await db
     .select({
       id: contacts.id,
       email: contacts.email,
       status: contacts.status,
+      confirmationToken: contacts.confirmationToken,
+      listId: contacts.listId,
       listName: lists.name,
     })
     .from(contacts)
-    .innerJoin(lists, eq(lists.id, contacts.listId))
+    .innerJoin(lists, eq(contacts.listId, lists.id))
     .where(eq(contacts.confirmationToken, token))
     .limit(1)
-  return row || null
+
+  return result[0] || null
 }
 
 async function confirmAction(formData: FormData) {
   'use server'
+
   const token = formData.get('token') as string
   if (!token) return
 
   const contact = await db.query.contacts.findFirst({
     where: eq(contacts.confirmationToken, token),
   })
-  if (!contact) return
-  if (contact.status !== 'pending') return
+
+  if (!contact || contact.status !== 'pending') return
 
   await db
     .update(contacts)
@@ -46,62 +50,72 @@ export default async function ConfirmPage({
 }) {
   const { token } = params
   const appName = process.env.APP_NAME || 'Mailpost'
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const justConfirmed = searchParams.confirmed === '1'
 
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!uuidRegex.test(token)) {
     return (
-      <Layout appName={appName}>
+      <ConfirmLayout appName={appName}>
         <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
-        <p className="text-muted-foreground">This link is invalid or has expired.</p>
-      </Layout>
+        <p className="text-muted-foreground">
+          This confirmation link is invalid or has already been used.
+        </p>
+      </ConfirmLayout>
     )
   }
 
-  const contact = await findContact(token)
+  const contact = await getContactByConfirmationToken(token)
 
   if (!contact) {
-    if (searchParams?.confirmed === '1') {
+    if (justConfirmed) {
       return (
-        <Layout appName={appName}>
-          <h1 className="text-xl font-semibold font-heading text-foreground mb-2">You&apos;re confirmed</h1>
-          <p className="text-muted-foreground">Thanks for confirming your subscription.</p>
-        </Layout>
+        <ConfirmLayout appName={appName}>
+          <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Subscription Confirmed</h1>
+          <p className="text-muted-foreground">
+            Thanks, you are now subscribed.
+          </p>
+        </ConfirmLayout>
       )
     }
     return (
-      <Layout appName={appName}>
+      <ConfirmLayout appName={appName}>
         <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
-        <p className="text-muted-foreground">This link is invalid or has expired.</p>
-      </Layout>
+        <p className="text-muted-foreground">
+          This confirmation link is invalid or has already been used.
+        </p>
+      </ConfirmLayout>
     )
   }
 
   if (contact.status === 'active') {
     return (
-      <Layout appName={appName}>
-        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Already confirmed</h1>
+      <ConfirmLayout appName={appName}>
+        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Already Confirmed</h1>
         <p className="text-muted-foreground">
-          <span className="font-medium">{contact.email}</span> is confirmed for{' '}
-          <span className="font-medium">{contact.listName}</span>.
+          <span className="font-medium">{contact.email}</span> is already subscribed
+          to <span className="font-medium">{contact.listName}</span>.
         </p>
-      </Layout>
+      </ConfirmLayout>
     )
   }
 
   if (contact.status !== 'pending') {
     return (
-      <Layout appName={appName}>
+      <ConfirmLayout appName={appName}>
         <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
-        <p className="text-muted-foreground">This link is invalid or has expired.</p>
-      </Layout>
+        <p className="text-muted-foreground">
+          This link is no longer active.
+        </p>
+      </ConfirmLayout>
     )
   }
 
   return (
-    <Layout appName={appName}>
-      <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Confirm your subscription</h1>
+    <ConfirmLayout appName={appName}>
+      <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Confirm Subscription</h1>
       <p className="text-muted-foreground mb-6">
-        Confirm <span className="font-medium">{contact.email}</span> for{' '}
+        Click below to confirm{' '}
+        <span className="font-medium">{contact.email}</span> for{' '}
         <span className="font-medium">{contact.listName}</span>.
       </p>
       <form action={confirmAction}>
@@ -113,15 +127,27 @@ export default async function ConfirmPage({
           Confirm Subscription
         </button>
       </form>
-    </Layout>
+    </ConfirmLayout>
   )
 }
 
-function Layout({ appName, children }: { appName: string; children: React.ReactNode }) {
+function ConfirmLayout({
+  appName,
+  children,
+}: {
+  appName: string
+  children: React.ReactNode
+}) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card rounded-xl shadow-warm border p-8 text-center">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </div>
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-6">
             {appName}
           </p>

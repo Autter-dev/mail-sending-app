@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
-import { contacts } from '@/lib/db/schema'
+import { contacts, lists } from '@/lib/db/schema'
 import { eq, ilike, and, count, SQL } from 'drizzle-orm'
 import { withApiAuth } from '@/lib/api-auth'
 import { createContactSchema } from '@/lib/validations/contacts'
 import { auditFromApiKey, logAudit } from '@/lib/audit'
+import { getQueue, JOBS } from '@/lib/queue'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   req: NextRequest,
@@ -76,6 +79,12 @@ export async function POST(
       )
     }
 
+    const [list] = await db.select().from(lists).where(eq(lists.id, params.listId))
+    if (!list) {
+      return NextResponse.json({ error: 'List not found', data: null, meta: {} }, { status: 404 })
+    }
+    const requireDoubleOptIn = list.requireDoubleOptIn
+
     const [created] = await db
       .insert(contacts)
       .values({
@@ -84,14 +93,26 @@ export async function POST(
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
         metadata: parsed.data.metadata ?? {},
+        ...(requireDoubleOptIn
+          ? { status: 'pending', confirmationToken: randomUUID() }
+          : {}),
       })
       .returning()
+
+    if (requireDoubleOptIn && created) {
+      try {
+        const queue = await getQueue()
+        await queue.send(JOBS.SEND_CONFIRMATION, { contactId: created.id })
+      } catch (err) {
+        logger.error({ err, contactId: created.id }, 'Failed to enqueue confirmation job')
+      }
+    }
 
     await logAudit(
       auditFromApiKey(req, auth),
       'contact.create',
       { type: 'contact', id: created.id },
-      { listId: params.listId, email: created.email },
+      { listId: params.listId, email: created.email, requireDoubleOptIn },
     )
 
     return NextResponse.json({ data: created, meta: {}, error: null }, { status: 201 })

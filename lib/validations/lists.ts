@@ -3,6 +3,13 @@ import { z } from 'zod'
 export const createListSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
+  requireDoubleOptIn: z.boolean().optional(),
+})
+
+export const updateListSchema = z.object({
+  name: z.string().min(1, 'Name is required').optional(),
+  description: z.string().nullable().optional(),
+  requireDoubleOptIn: z.boolean().optional(),
 })
 
 export const uploadConfirmSchema = z.object({
@@ -19,4 +26,5 @@ export const uploadConfirmSchema = z.object({
 })
 
 export type CreateListInput = z.infer<typeof createListSchema>
+export type UpdateListInput = z.infer<typeof updateListSchema>
 export type UploadConfirmInput = z.infer<typeof uploadConfirmSchema>

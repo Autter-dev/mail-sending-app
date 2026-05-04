@@ -12,6 +12,7 @@ Self-hostable broadcast email tool. Manage contact lists, design emails with a v
 - **Campaign Sending** - Queue-based sending via pg-boss, with scheduling, cancellation, and per-provider rate limiting
 - **Open and Click Tracking** - Tracking pixel for opens, link wrapping for clicks, per-campaign analytics with charts
 - **Unsubscribe Handling** - One-click unsubscribe with List-Unsubscribe header support
+- **Double Opt-In** - Per-list toggle that requires new contacts to confirm via emailed link before they receive campaigns
 - **Signup Forms** - Build forms in the dashboard, share a hosted page or embed a JS snippet on any site, with optional double opt-in
 - **REST API** - Full API with Bearer token auth for programmatic access to lists, contacts, and campaign data
 - **Self-Contained** - Postgres for everything (data, queue, migrations). No Redis, no external queue. Optional MinIO/S3 for file uploads
@@ -135,6 +136,7 @@ mc mb local/emailtool
 | `S3_FORCE_PATH_STYLE` | Use path-style URLs (required for MinIO) | `true` |
 | `ENCRYPTION_KEY` | 32-byte hex key for encrypting provider credentials | (required) |
 | `WORKER_CONCURRENCY` | Number of concurrent email send jobs | `5` |
+| `CONFIRMATION_FROM_EMAIL` | Sender address for double opt-in confirmation emails. Required when any list has double opt-in enabled. Sender name uses `APP_NAME`. | (required if double opt-in is used) |
 | `RESEND_WEBHOOK_SECRET` | Resend webhook signing secret (optional) | |
 
 ## Email Providers
@@ -169,6 +171,27 @@ Webhooks let Mailpost track bounces and complaints reported by the email provide
 2. Add an HTTPS subscription pointing to `https://your-domain.com/api/webhooks/ses`
 3. The endpoint will auto-confirm the subscription
 4. In SES, configure a Configuration Set to publish bounce and complaint notifications to the SNS topic
+
+## Double Opt-In
+
+Each list has a per-list double opt-in toggle. When enabled, any new contact added to the list (via the dashboard, CSV upload, or REST API) is created with `status = pending` and immediately receives a confirmation email. The contact is excluded from campaigns until they click the link, after which their status flips to `active`.
+
+**Enabling per list:**
+- *On creation:* check "Require double opt-in" in the New List dialog.
+- *On an existing list:* open the list detail page and use the "Double opt-in" switch in the header. You can flip it on or off at any time.
+
+**Toggle behavior:**
+- Turning it **on** affects new contacts only. Existing `active` contacts are not retroactively flipped to `pending`.
+- Turning it **off** affects new contacts only. Existing `pending` contacts stay pending until they confirm or are manually edited.
+
+**Required setup:**
+1. Set `CONFIRMATION_FROM_EMAIL` in your env to a verified sender address (e.g. `noreply@yourdomain.com`).
+2. Configure at least one email provider and mark it as the default in Settings > Providers. Confirmation emails are sent through the default provider.
+3. Make sure `APP_URL` is publicly reachable: the confirmation link in the email points at `APP_URL/confirm/<token>`.
+
+**What the recipient sees:** a minimal page at `/confirm/<token>` showing the list name and email address, with a single "Confirm Subscription" button. After clicking, the page shows a success message and the token is consumed.
+
+**Send-time gating:** campaign sends already filter on `status = active`, so pending contacts are automatically excluded with no extra configuration.
 
 ## Signup Forms
 
