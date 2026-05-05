@@ -38,6 +38,19 @@ export async function PATCH(
   if ('listId' in body) updateData.listId = body.listId
   if ('providerId' in body) updateData.providerId = body.providerId
   if ('disableTracking' in body) updateData.disableTracking = !!body.disableTracking
+  if ('sendRatePerMinute' in body) {
+    const r = body.sendRatePerMinute
+    if (r === null) {
+      updateData.sendRatePerMinute = null
+    } else if (Number.isInteger(r) && r >= 1 && r <= 100000) {
+      updateData.sendRatePerMinute = r
+    } else {
+      return NextResponse.json(
+        { error: 'sendRatePerMinute must be null or an integer between 1 and 100000' },
+        { status: 400 },
+      )
+    }
+  }
 
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json(

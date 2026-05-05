@@ -30,6 +30,7 @@ interface Campaign {
   totalRecipients: number | null
   cancelRequested: boolean
   disableTracking: boolean
+  sendRatePerMinute: number | null
   listId: string
   listName?: string
   sentCount?: number
@@ -74,6 +75,7 @@ export default function CampaignDetailPage() {
   const [sendDialogOpen, setSendDialogOpen] = useState(false)
   const [scheduleOption, setScheduleOption] = useState<'now' | 'later'>('now')
   const [scheduledAt, setScheduledAt] = useState('')
+  const [sendRateInput, setSendRateInput] = useState('')
   const [sending, setSending] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [trackingSaving, setTrackingSaving] = useState(false)
@@ -102,12 +104,35 @@ export default function CampaignDetailPage() {
     return () => clearInterval(interval)
   }, [campaign?.status, fetchCampaign])
 
+  // Pre-fill the send rate input from the saved campaign value when the dialog opens
+  useEffect(() => {
+    if (sendDialogOpen) {
+      setSendRateInput(campaign?.sendRatePerMinute ? String(campaign.sendRatePerMinute) : '')
+    }
+  }, [sendDialogOpen, campaign?.sendRatePerMinute])
+
   async function handleSend() {
     setSending(true)
     try {
-      const body: { scheduledAt?: string } = {}
+      const body: { scheduledAt?: string; sendRatePerMinute?: number | null } = {}
       if (scheduleOption === 'later' && scheduledAt) {
         body.scheduledAt = new Date(scheduledAt).toISOString()
+      }
+      const trimmed = sendRateInput.trim()
+      if (trimmed === '') {
+        body.sendRatePerMinute = null
+      } else {
+        const parsed = Number(trimmed)
+        if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100000) {
+          toast({
+            title: 'Invalid send rate',
+            description: 'Send rate must be a whole number between 1 and 100000, or left blank for unlimited.',
+            variant: 'destructive',
+          })
+          setSending(false)
+          return
+        }
+        body.sendRatePerMinute = parsed
       }
       const res = await fetch(`/api/internal/campaigns/${campaignId}/send`, {
         method: 'POST',
@@ -256,6 +281,15 @@ export default function CampaignDetailPage() {
             <div>
               <p className="text-muted-foreground">Total recipients</p>
               <p className="font-medium">{campaign.totalRecipients.toLocaleString()}</p>
+            </div>
+          )}
+          {campaign.sendRatePerMinute != null && (
+            <div>
+              <p className="text-muted-foreground">Send rate</p>
+              <p className="font-medium">
+                {campaign.sendRatePerMinute.toLocaleString()} per minute (~
+                {Math.max(1, Math.floor(campaign.sendRatePerMinute / 60))}/sec)
+              </p>
             </div>
           )}
         </CardContent>
@@ -438,6 +472,34 @@ export default function CampaignDetailPage() {
                 />
               </div>
             )}
+
+            <div className="space-y-1">
+              <Label htmlFor="sendRate">Send rate (emails per minute)</Label>
+              <Input
+                id="sendRate"
+                type="number"
+                min={1}
+                max={100000}
+                step={1}
+                value={sendRateInput}
+                onChange={(e) => setSendRateInput(e.target.value)}
+                placeholder="Unlimited"
+              />
+              <p className="text-xs text-muted-foreground">
+                {(() => {
+                  const trimmed = sendRateInput.trim()
+                  if (trimmed === '') {
+                    return 'Leave blank to send as fast as the worker allows.'
+                  }
+                  const parsed = Number(trimmed)
+                  if (!Number.isFinite(parsed) || parsed < 1) {
+                    return 'Enter a whole number of emails per minute.'
+                  }
+                  const perSec = Math.max(1, Math.floor(parsed / 60))
+                  return `Releases ~${perSec} email${perSec === 1 ? '' : 's'} per second.`
+                })()}
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendDialogOpen(false)} disabled={sending}>

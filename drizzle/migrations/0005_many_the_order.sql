@@ -1,0 +1,1 @@
+ALTER TABLE "campaigns" ADD COLUMN "send_rate_per_minute" integer;

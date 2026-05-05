@@ -13,7 +13,7 @@ export async function POST(
   const startTime = Date.now()
   logger.info({ campaignId: params.id }, 'Campaign send requested')
 
-  let body: { scheduledAt?: string } = {}
+  let body: { scheduledAt?: string; sendRatePerMinute?: number | null } = {}
   try {
     body = await req.json()
   } catch {
@@ -21,6 +21,17 @@ export async function POST(
   }
 
   const { scheduledAt } = body
+
+  // Validate sendRatePerMinute if provided
+  let bodyRate: number | null | undefined = body.sendRatePerMinute
+  if (bodyRate !== undefined && bodyRate !== null) {
+    if (!Number.isInteger(bodyRate) || bodyRate < 1 || bodyRate > 100000) {
+      return NextResponse.json(
+        { error: 'sendRatePerMinute must be an integer between 1 and 100000' },
+        { status: 400 },
+      )
+    }
+  }
 
   // Fetch campaign
   const [campaign] = await db
@@ -88,6 +99,10 @@ export async function POST(
 
   logger.info({ campaignId: params.id, contactCount: contactList.length }, 'Contacts fetched, updating campaign status')
 
+  // Resolve send rate: explicit body wins, then persisted campaign value, then null (unlimited)
+  const rate = bodyRate !== undefined ? bodyRate : campaign.sendRatePerMinute ?? null
+  const perSecond = rate ? Math.max(1, Math.floor(rate / 60)) : null
+
   // Update campaign status
   const newStatus = scheduledAt ? 'scheduled' : 'sending'
   await db
@@ -96,6 +111,7 @@ export async function POST(
       status: newStatus,
       totalRecipients: contactList.length,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      sendRatePerMinute: rate,
       updatedAt: new Date(),
     })
     .where(eq(campaigns.id, campaign.id))
@@ -120,20 +136,35 @@ export async function POST(
     .from(campaignSends)
     .where(eq(campaignSends.campaignId, campaign.id))
 
-  // Enqueue individual send jobs
-  logger.info({ campaignId: params.id, sendCount: sends.length }, 'Enqueuing send jobs')
+  // Enqueue individual send jobs, staggered by sendRatePerMinute when set
+  logger.info(
+    { campaignId: params.id, sendCount: sends.length, sendRatePerMinute: rate, perSecond },
+    'Enqueuing send jobs',
+  )
   const queue = await getQueue()
-  const sendOptions = scheduledAt ? { startAfter: new Date(scheduledAt) } : undefined
+  const baseMs = scheduledAt ? new Date(scheduledAt).getTime() : Date.now()
 
-  for (const send of sends) {
-    await queue.send(JOBS.SEND_EMAIL, { sendId: send.id, campaignId: campaign.id }, sendOptions)
+  for (let i = 0; i < sends.length; i++) {
+    const send = sends[i]
+    let startAfter: Date | undefined
+    if (perSecond) {
+      startAfter = new Date(baseMs + Math.floor(i / perSecond) * 1000)
+    } else if (scheduledAt) {
+      startAfter = new Date(scheduledAt)
+    }
+    await queue.send(
+      JOBS.SEND_EMAIL,
+      { sendId: send.id, campaignId: campaign.id },
+      startAfter ? { startAfter } : undefined,
+    )
   }
 
-  // Enqueue finalize job with estimated delay
-  const estimatedSeconds = Math.max(60, Math.ceil(contactList.length / 5) * 2 + 60)
-  const finalizeAfter = scheduledAt
-    ? new Date(new Date(scheduledAt).getTime() + estimatedSeconds * 1000)
-    : new Date(Date.now() + estimatedSeconds * 1000)
+  // Enqueue finalize job with rate-aware estimated delay
+  const sendWindowSeconds = perSecond
+    ? Math.ceil(sends.length / perSecond)
+    : Math.ceil(contactList.length / 5) * 2
+  const estimatedSeconds = Math.max(60, sendWindowSeconds + 60)
+  const finalizeAfter = new Date(baseMs + estimatedSeconds * 1000)
 
   await queue.send(
     JOBS.FINALIZE_CAMPAIGN,
