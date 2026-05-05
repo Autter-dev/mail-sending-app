@@ -138,6 +138,22 @@ export default async function UnsubscribePage({
     )
   }
 
+  // Test sends use the all-zero placeholder UUID. Show a friendly state
+  // so test recipients see the link works, not "Invalid Link".
+  if (token === '00000000-0000-0000-0000-000000000000') {
+    return (
+      <PublicPageLayout appName={appName}>
+        <StateBlock
+          state={{
+            title: 'Test Email',
+            body: 'This was a test send, so no contact is unsubscribed. The link will work for real recipients once the campaign is sent.',
+          }}
+          vars={fallbackVars}
+        />
+      </PublicPageLayout>
+    )
+  }
+
   const contact = await getContactByToken(token)
 
   if (!contact) {
