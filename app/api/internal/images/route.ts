@@ -3,6 +3,7 @@ import { uploadFile } from '@/lib/storage'
 import { db } from '@/lib/db'
 import { assets } from '@/lib/db/schema'
 import { nanoid } from 'nanoid'
+import { trackError, logger } from '@/lib/logger'
 
 // Allow file uploads up to 10MB
 export const runtime = 'nodejs'
@@ -39,7 +40,24 @@ export async function POST(req: NextRequest) {
     const key = `images/${fileId}`
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    await uploadFile(key, buffer, file.type)
+
+    try {
+      await uploadFile(key, buffer, file.type)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'S3 upload failed'
+      trackError(err, {
+        scope: 'image_upload',
+        step: 's3_put',
+        s3_endpoint_set: Boolean(process.env.S3_ENDPOINT?.trim()),
+        s3_bucket_set: Boolean(process.env.S3_BUCKET?.trim()),
+        s3_region: process.env.S3_REGION,
+        force_path_style: process.env.S3_FORCE_PATH_STYLE,
+      })
+      const hint = /invalid url/i.test(message)
+        ? 'Storage misconfigured: check S3_ENDPOINT, S3_REGION, and S3_BUCKET env vars (an empty S3_ENDPOINT will trigger this).'
+        : message
+      return NextResponse.json({ error: hint }, { status: 500 })
+    }
 
     await db.insert(assets).values({
       fileId,
@@ -55,9 +73,11 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.APP_URL || 'http://localhost:3000'
     const url = `${appUrl}/img/${fileId}`
 
+    logger.info({ fileId, size: file.size, mimeType: file.type }, 'Image uploaded')
     return NextResponse.json({ key, url }, { status: 201 })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Upload failed'
+    trackError(err, { scope: 'image_upload', step: 'request' })
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -6,17 +6,32 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
+function trimmedEnv(name: string): string | undefined {
+  const value = process.env[name]
+  if (value === undefined) return undefined
+  const trimmed = value.trim()
+  return trimmed === '' ? undefined : trimmed
+}
+
+const endpoint = trimmedEnv('S3_ENDPOINT')
+const region = trimmedEnv('S3_REGION') || 'us-east-1'
+const accessKeyId = trimmedEnv('S3_ACCESS_KEY_ID')
+const secretAccessKey = trimmedEnv('S3_SECRET_ACCESS_KEY')
+const BUCKET = trimmedEnv('S3_BUCKET')
+
+if (!accessKeyId || !secretAccessKey || !BUCKET) {
+  console.warn('[storage] Missing S3 config: S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, and S3_BUCKET are required.')
+}
+
 const client = new S3Client({
-  region: process.env.S3_REGION!,
-  endpoint: process.env.S3_ENDPOINT,
+  region,
+  ...(endpoint ? { endpoint } : {}),
   forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
+    accessKeyId: accessKeyId || '',
+    secretAccessKey: secretAccessKey || '',
   },
 })
-
-const BUCKET = process.env.S3_BUCKET!
 
 export async function uploadFile(key: string, body: Buffer, contentType: string) {
   await client.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType }))
