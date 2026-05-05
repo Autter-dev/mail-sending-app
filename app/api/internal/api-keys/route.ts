@@ -5,8 +5,12 @@ import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
 import { createApiKeySchema } from '@/lib/validations/api-keys'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function GET() {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   const keys = await db
     .select({
       id: apiKeys.id,
@@ -22,6 +26,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let body: unknown
   try {
     body = await req.json()

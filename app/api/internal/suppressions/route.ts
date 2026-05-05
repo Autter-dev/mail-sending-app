@@ -5,6 +5,7 @@ import { ilike, sql, desc } from 'drizzle-orm'
 import { createSuppressionSchema } from '@/lib/validations/suppressions'
 import { suppressEmail, normalizeEmail } from '@/lib/suppressions'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -32,6 +33,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let body: unknown
   try {
     body = await req.json()

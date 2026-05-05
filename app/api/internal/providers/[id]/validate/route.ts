@@ -5,11 +5,15 @@ import { eq } from 'drizzle-orm'
 import { createProviderAdapter } from '@/lib/providers/factory'
 import { logger, trackEvent, trackError } from '@/lib/logger'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   const startTime = Date.now()
   logger.info({ providerId: params.id }, 'Provider validation requested')
 

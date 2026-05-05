@@ -4,6 +4,7 @@ import { emailProviders } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { decrypt } from '@/lib/encryption'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 interface ProviderConfig {
   apiKey?: string
@@ -48,6 +49,9 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   try {
     const [existing] = await db.select().from(emailProviders).where(eq(emailProviders.id, params.id))
     await db.delete(emailProviders).where(eq(emailProviders.id, params.id))
@@ -70,6 +74,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let body: unknown
   try {
     body = await req.json()

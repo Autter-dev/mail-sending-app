@@ -4,6 +4,7 @@ import { emailProviders } from '@/lib/db/schema'
 import { decrypt, encrypt } from '@/lib/encryption'
 import { createProviderSchema } from '@/lib/validations/providers'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 interface ProviderConfig {
   apiKey?: string
@@ -56,6 +57,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let body: unknown
   try {
     body = await req.json()

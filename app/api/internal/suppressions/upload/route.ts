@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { uploadFile } from '@/lib/storage'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let formData: FormData
   try {
     formData = await request.formData()

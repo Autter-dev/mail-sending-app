@@ -4,6 +4,7 @@ import { apiKeys } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 const updateApiKeySchema = z.object({
   rateLimitPerMinute: z.number().int().min(1).max(100000),
@@ -13,6 +14,9 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   const [deleted] = await db
     .delete(apiKeys)
     .where(eq(apiKeys.id, params.id))
@@ -36,6 +40,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let body: unknown
   try {
     body = await req.json()

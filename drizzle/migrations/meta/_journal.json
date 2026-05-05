@@ -15,6 +15,13 @@
       "when": 1777926630412,
       "tag": "0001_glorious_timeslip",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777934523002,
+      "tag": "0002_tearful_morlocks",
+      "breakpoints": true
     }
   ]
 }

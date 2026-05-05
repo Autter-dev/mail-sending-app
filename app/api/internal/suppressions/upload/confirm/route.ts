@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import { uploadConfirmSchema, SUPPRESSION_REASONS } from '@/lib/validations/suppressions'
 import { suppressEmailsBulk, type SuppressInput, type SuppressionReason } from '@/lib/suppressions'
 import { auditFromSession, logAudit } from '@/lib/audit'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 const s3 = new S3Client({
   region: process.env.S3_REGION!,
@@ -18,6 +19,9 @@ const s3 = new S3Client({
 const reasonValues = new Set<string>(SUPPRESSION_REASONS)
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin()
+  if (guard) return guard
+
   let body: unknown
   try {
     body = await request.json()

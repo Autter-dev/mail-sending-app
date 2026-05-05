@@ -186,6 +186,28 @@ export const forms = pgTable('forms', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  name: text('name'),
+  passwordHash: text('password_hash').notNull(),
+  role: text('role').notNull().default('member'), // admin | member
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+})
+
+export const teamInvites = pgTable('team_invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(),
+  role: text('role').notNull().default('member'),
+  tokenHash: text('token_hash').notNull().unique(),
+  invitedBy: text('invited_by').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const appSettings = pgTable('app_settings', {
   id: text('id').primaryKey().default('singleton'),
   confirmationFromEmail: text('confirmation_from_email'),
@@ -207,3 +229,5 @@ export type Asset = typeof assets.$inferSelect
 export type Template = typeof templates.$inferSelect
 export type Form = typeof forms.$inferSelect
 export type AppSettings = typeof appSettings.$inferSelect
+export type User = typeof users.$inferSelect
+export type TeamInvite = typeof teamInvites.$inferSelect
