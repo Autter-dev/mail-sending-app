@@ -23,7 +23,7 @@ export async function POST(
   const { scheduledAt } = body
 
   // Validate sendRatePerMinute if provided
-  let bodyRate: number | null | undefined = body.sendRatePerMinute
+  const bodyRate: number | null | undefined = body.sendRatePerMinute
   if (bodyRate !== undefined && bodyRate !== null) {
     if (!Number.isInteger(bodyRate) || bodyRate < 1 || bodyRate > 100000) {
       return NextResponse.json(
