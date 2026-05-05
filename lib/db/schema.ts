@@ -208,10 +208,24 @@ export const teamInvites = pgTable('team_invites', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export interface UnsubscribePageStateContent {
+  title: string
+  body: string
+  buttonLabel?: string
+}
+
+export interface UnsubscribePageContent {
+  confirm: UnsubscribePageStateContent
+  confirmed: UnsubscribePageStateContent
+  alreadyUnsubscribed: UnsubscribePageStateContent
+  invalid: UnsubscribePageStateContent
+}
+
 export const appSettings = pgTable('app_settings', {
   id: text('id').primaryKey().default('singleton'),
   confirmationFromEmail: text('confirmation_from_email'),
   confirmationFromName: text('confirmation_from_name'),
+  unsubscribePage: jsonb('unsubscribe_page').$type<UnsubscribePageContent | null>(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

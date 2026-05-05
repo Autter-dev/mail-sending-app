@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="./public/assets/logo/primary-logo.png" alt="hedwig" width="160" />
+</p>
+
 # hedwig-mail
 
 Self-hostable broadcast email tool. Manage contact lists, design emails with a visual editor, send campaigns through Resend or Amazon SES, and track opens and clicks. No third-party email marketing platform required.
 
 > Sponsored by [Autter](https://autter.dev). Built and maintained as an open source project for the community.
+>
+> <a href="https://autter.dev"><picture><source media="(prefers-color-scheme: dark)" srcset="https://autter.dev/wordmark-light.png"><img src="https://autter.dev/wordmark-dark.png" alt="Autter" height="32" /></picture></a>
 
 ## Features
 
@@ -429,6 +435,13 @@ For operators, the production hardening checklist lives in [SETUP.md](./SETUP.md
 Pull requests welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for local setup, branch naming, and the PR checklist.
 
 ## Sponsor
+
+<a href="https://autter.dev">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://autter.dev/wordmark-light.png">
+    <img src="https://autter.dev/wordmark-dark.png" alt="Autter" height="48" />
+  </picture>
+</a>
 
 hedwig-mail is sponsored by [Autter](https://autter.dev). Autter funds development and maintenance, but the project is open source under MIT and runs entirely on infrastructure you control.
 

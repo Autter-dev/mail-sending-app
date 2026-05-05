@@ -1,10 +1,17 @@
 import { db } from '@/lib/db'
 import { contacts, lists, campaignSends, campaignEvents } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { suppressEmail } from '@/lib/suppressions'
 import { logAudit, systemAuditCtx } from '@/lib/audit'
+import { PublicPageLayout } from '@/components/public/PublicPageLayout'
+import {
+  renderUnsubscribeBody,
+  renderUnsubscribeTitle,
+  type UnsubscribePageVars,
+} from '@/lib/settings/unsubscribe-page'
+import { getUnsubscribePageContent } from '@/lib/settings/unsubscribe-page-server'
+import type { UnsubscribePageStateContent } from '@/lib/db/schema'
 
 async function getContactByToken(token: string) {
   const result = await db
@@ -76,27 +83,58 @@ async function unsubscribeAction(formData: FormData) {
     },
   )
 
-  redirect(`/unsubscribe/${token}`)
+  redirect(`/unsubscribe/${token}?confirmed=1`)
+}
+
+function StateBlock({
+  state,
+  vars,
+  children,
+}: {
+  state: UnsubscribePageStateContent
+  vars: UnsubscribePageVars
+  children?: React.ReactNode
+}) {
+  const title = renderUnsubscribeTitle(state.title, vars)
+  const body = renderUnsubscribeBody(state.body, vars)
+  return (
+    <>
+      <h1 className="text-xl font-semibold font-heading text-foreground mb-2">{title}</h1>
+      <div
+        className="text-muted-foreground [&_a]:text-primary [&_a]:underline [&_strong]:font-medium [&_strong]:text-foreground"
+        dangerouslySetInnerHTML={{ __html: body }}
+      />
+      {children}
+    </>
+  )
 }
 
 export default async function UnsubscribePage({
   params,
+  searchParams,
 }: {
   params: { token: string }
+  searchParams: { confirmed?: string }
 }) {
   const { token } = params
   const appName = process.env.APP_NAME || 'hedwig'
+  const justConfirmed = searchParams.confirmed === '1'
 
-  // Validate UUID format
+  const content = await getUnsubscribePageContent()
+
+  // Fallback vars when contact lookup fails (invalid link cases)
+  const fallbackVars: UnsubscribePageVars = {
+    email: '',
+    list_name: '',
+    app_name: appName,
+  }
+
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!uuidRegex.test(token)) {
     return (
-      <UnsubscribeLayout appName={appName}>
-        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
-        <p className="text-muted-foreground">
-          This link is invalid or has already been used.
-        </p>
-      </UnsubscribeLayout>
+      <PublicPageLayout appName={appName}>
+        <StateBlock state={content.invalid} vars={fallbackVars} />
+      </PublicPageLayout>
     )
   }
 
@@ -104,70 +142,40 @@ export default async function UnsubscribePage({
 
   if (!contact) {
     return (
-      <UnsubscribeLayout appName={appName}>
-        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Invalid Link</h1>
-        <p className="text-muted-foreground">
-          This link is invalid or has already been used.
-        </p>
-      </UnsubscribeLayout>
+      <PublicPageLayout appName={appName}>
+        <StateBlock state={content.invalid} vars={fallbackVars} />
+      </PublicPageLayout>
     )
+  }
+
+  const vars: UnsubscribePageVars = {
+    email: contact.email,
+    list_name: contact.listName,
+    app_name: appName,
   }
 
   if (contact.status === 'unsubscribed') {
+    const state = justConfirmed ? content.confirmed : content.alreadyUnsubscribed
     return (
-      <UnsubscribeLayout appName={appName}>
-        <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Already Unsubscribed</h1>
-        <p className="text-muted-foreground">
-          <span className="font-medium">{contact.email}</span> is already unsubscribed
-          from <span className="font-medium">{contact.listName}</span>.
-        </p>
-      </UnsubscribeLayout>
+      <PublicPageLayout appName={appName}>
+        <StateBlock state={state} vars={vars} />
+      </PublicPageLayout>
     )
   }
 
   return (
-    <UnsubscribeLayout appName={appName}>
-      <h1 className="text-xl font-semibold font-heading text-foreground mb-2">Unsubscribe</h1>
-      <p className="text-muted-foreground mb-6">
-        Are you sure you want to unsubscribe{' '}
-        <span className="font-medium">{contact.email}</span> from{' '}
-        <span className="font-medium">{contact.listName}</span>?
-      </p>
-      <form action={unsubscribeAction}>
-        <input type="hidden" name="token" value={token} />
-        <button
-          type="submit"
-          className="inline-flex items-center justify-center rounded-lg bg-destructive px-6 py-2.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
-        >
-          Confirm Unsubscribe
-        </button>
-      </form>
-    </UnsubscribeLayout>
-  )
-}
-
-function UnsubscribeLayout({
-  appName,
-  children,
-}: {
-  appName: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-xl shadow-warm border p-8 text-center">
-          <Image
-            src="/assets/logo/primary-logo.png"
-            alt={appName}
-            width={200}
-            height={87}
-            priority
-            className="mx-auto mb-6 h-16 w-auto dark:invert"
-          />
-          {children}
-        </div>
-      </div>
-    </div>
+    <PublicPageLayout appName={appName}>
+      <StateBlock state={content.confirm} vars={vars}>
+        <form action={unsubscribeAction} className="mt-6">
+          <input type="hidden" name="token" value={token} />
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-lg bg-destructive px-6 py-2.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
+          >
+            {content.confirm.buttonLabel || 'Confirm Unsubscribe'}
+          </button>
+        </form>
+      </StateBlock>
+    </PublicPageLayout>
   )
 }

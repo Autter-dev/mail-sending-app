@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
+import { UnsubscribePageEditor } from "@/components/settings/UnsubscribePageEditor"
+import type { UnsubscribePageContent } from "@/lib/db/schema"
 
 interface AppSettings {
   id: string
   confirmationFromEmail: string | null
   confirmationFromName: string | null
+  unsubscribePage: UnsubscribePageContent | null
   updatedAt: string
 }
 
@@ -20,6 +23,7 @@ export default function GeneralSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [confirmationFromEmail, setConfirmationFromEmail] = useState("")
   const [confirmationFromName, setConfirmationFromName] = useState("")
+  const [unsubscribePage, setUnsubscribePage] = useState<UnsubscribePageContent | null>(null)
 
   async function fetchSettings() {
     setLoading(true)
@@ -29,6 +33,7 @@ export default function GeneralSettingsPage() {
       const data: AppSettings = await res.json()
       setConfirmationFromEmail(data.confirmationFromEmail ?? "")
       setConfirmationFromName(data.confirmationFromName ?? "")
+      setUnsubscribePage(data.unsubscribePage ?? null)
     } catch {
       toast({
         title: "Error",
@@ -70,11 +75,11 @@ export default function GeneralSettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div>
         <h1 className="text-2xl font-bold font-heading">General Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Application-wide settings for transactional emails.
+          Application-wide settings for transactional emails and public-facing pages.
         </p>
       </div>
 
@@ -84,6 +89,7 @@ export default function GeneralSettingsPage() {
           <Skeleton className="h-10 w-full rounded-md" />
         </div>
       ) : (
+        <>
         <div className="border rounded-xl p-6 space-y-6">
           <div>
             <h2 className="text-lg font-semibold">Double opt-in confirmation</h2>
@@ -125,6 +131,8 @@ export default function GeneralSettingsPage() {
             </Button>
           </div>
         </div>
+        <UnsubscribePageEditor initial={unsubscribePage} />
+        </>
       )}
     </div>
   )

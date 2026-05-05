@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { appSettings, type AppSettings } from '@/lib/db/schema'
+import { appSettings, type AppSettings, type UnsubscribePageContent } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 const SINGLETON_ID = 'singleton'
@@ -22,6 +22,7 @@ export async function getAppSettings(): Promise<AppSettings> {
 export interface AppSettingsPatch {
   confirmationFromEmail?: string | null
   confirmationFromName?: string | null
+  unsubscribePage?: UnsubscribePageContent | null
 }
 
 export async function updateAppSettings(patch: AppSettingsPatch): Promise<AppSettings> {
