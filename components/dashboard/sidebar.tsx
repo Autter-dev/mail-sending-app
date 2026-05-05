@@ -186,22 +186,15 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
-      <div className="flex items-center gap-2 px-6 py-5">
+      <div className="flex items-center px-6 py-5">
         <Image
-          src="/assets/logo/favicon-md.png"
+          src="/assets/logo/primary-logo.png"
           alt="hedwig"
-          width={32}
-          height={32}
+          width={720}
+          height={345}
           priority
-          className="h-8 w-8 rounded-lg"
-        />
-        <Image
-          src="/assets/logo/wordmark.png"
-          alt="hedwig"
-          width={96}
-          height={28}
-          priority
-          className="h-7 w-auto dark:invert"
+          unoptimized
+          className="h-10 w-auto"
         />
       </div>
 

@@ -196,10 +196,11 @@ function Layout({ appName, children }: { appName: string; children: React.ReactN
           <Image
             src="/assets/logo/primary-logo.png"
             alt={appName}
-            width={200}
-            height={87}
+            width={720}
+            height={345}
             priority
-            className="mx-auto mb-6 h-16 w-auto dark:invert"
+            unoptimized
+            className="mx-auto mb-6 h-16 w-auto"
           />
           {children}
         </div>

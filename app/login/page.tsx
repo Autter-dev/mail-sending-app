@@ -52,10 +52,11 @@ function LoginForm() {
           <Image
             src="/assets/logo/primary-logo.png"
             alt="hedwig"
-            width={240}
-            height={104}
+            width={720}
+            height={345}
             priority
-            className="mx-auto mb-4 h-20 w-auto dark:invert"
+            unoptimized
+            className="mx-auto mb-4 h-20 w-auto"
           />
           <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
         </div>

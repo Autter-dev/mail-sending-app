@@ -44,10 +44,11 @@ export default async function HostedFormPage({
           <Image
             src="/assets/logo/primary-logo.png"
             alt={appName}
-            width={180}
-            height={78}
+            width={720}
+            height={345}
             priority
-            className="mb-4 h-12 w-auto dark:invert"
+            unoptimized
+            className="mb-4 h-12 w-auto"
           />
           <h1 className="text-xl font-semibold font-heading text-foreground mb-6">{form.name}</h1>
           <FormClient
