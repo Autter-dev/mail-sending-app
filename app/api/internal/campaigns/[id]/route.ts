@@ -37,6 +37,7 @@ export async function PATCH(
   if ('templateHtml' in body) updateData.templateHtml = body.templateHtml
   if ('listId' in body) updateData.listId = body.listId
   if ('providerId' in body) updateData.providerId = body.providerId
+  if ('disableTracking' in body) updateData.disableTracking = !!body.disableTracking
 
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json(

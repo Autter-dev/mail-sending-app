@@ -110,6 +110,7 @@ async function processSendJob(sendId: string, campaignId: string) {
     appUrl: APP_URL,
     unsubscribeUrl: `${APP_URL}/unsubscribe/${contact.unsubscribeToken}`,
     rawHtml: campaign.templateHtml,
+    disableTracking: campaign.disableTracking,
   })
 
   logger.info({

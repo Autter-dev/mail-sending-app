@@ -148,6 +148,7 @@ export async function POST(
           appUrl,
           unsubscribeUrl: testUnsubscribeUrl,
           rawHtml: campaign.templateHtml,
+          disableTracking: campaign.disableTracking,
         })
 
         await adapter.send({
@@ -157,6 +158,10 @@ export async function POST(
           subject: campaign.subject || 'Test Email',
           html,
           text: renderPlainText(html),
+          headers: {
+            'List-Unsubscribe': `<${testUnsubscribeUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
         })
         sent.push(recipient)
       } catch (sendErr) {

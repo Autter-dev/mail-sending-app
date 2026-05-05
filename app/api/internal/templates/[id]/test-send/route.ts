@@ -124,6 +124,10 @@ export async function POST(
           subject: template.subject || 'Test Email',
           html,
           text: renderPlainText(html),
+          headers: {
+            'List-Unsubscribe': `<${testUnsubscribeUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
         })
         sent.push(recipient)
       } catch (sendErr) {

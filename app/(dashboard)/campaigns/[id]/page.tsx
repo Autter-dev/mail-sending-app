@@ -29,6 +29,7 @@ interface Campaign {
   sentAt: string | null
   totalRecipients: number | null
   cancelRequested: boolean
+  disableTracking: boolean
   listId: string
   listName?: string
   sentCount?: number
@@ -75,6 +76,7 @@ export default function CampaignDetailPage() {
   const [scheduledAt, setScheduledAt] = useState('')
   const [sending, setSending] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [trackingSaving, setTrackingSaving] = useState(false)
 
   const fetchCampaign = useCallback(async () => {
     try {
@@ -130,6 +132,34 @@ export default function CampaignDetailPage() {
       toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' })
     } finally {
       setSending(false)
+    }
+  }
+
+  async function handleToggleTracking(nextDisabled: boolean) {
+    if (!campaign) return
+    setTrackingSaving(true)
+    try {
+      const res = await fetch(`/api/internal/campaigns/${campaignId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disableTracking: nextDisabled }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast({ title: 'Error', description: data.error ?? 'Failed to update tracking.', variant: 'destructive' })
+        return
+      }
+      setCampaign({ ...campaign, disableTracking: nextDisabled })
+      toast({
+        title: nextDisabled ? 'Link tracking disabled' : 'Link tracking enabled',
+        description: nextDisabled
+          ? 'Links will not be rewritten and the open pixel is removed.'
+          : 'Links will be wrapped for click tracking and an open pixel is included.',
+      })
+    } catch {
+      toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' })
+    } finally {
+      setTrackingSaving(false)
     }
   }
 
@@ -227,6 +257,38 @@ export default function CampaignDetailPage() {
               <p className="text-muted-foreground">Total recipients</p>
               <p className="font-medium">{campaign.totalRecipients.toLocaleString()}</p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tracking */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tracking</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Link and open tracking</p>
+              <p className="text-xs text-muted-foreground max-w-md">
+                When enabled, links are rewritten to {`{APP_URL}/r/...`} and a 1x1 open pixel is added. Disable to keep the original link URLs and skip the open pixel.
+              </p>
+            </div>
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={!campaign.disableTracking}
+                disabled={trackingSaving || campaign.status !== 'draft'}
+                onChange={(e) => handleToggleTracking(!e.target.checked)}
+              />
+              <span className="text-sm">{campaign.disableTracking ? 'Off' : 'On'}</span>
+            </label>
+          </div>
+          {campaign.status !== 'draft' && (
+            <p className="text-xs text-muted-foreground">
+              Tracking can only be changed while the campaign is a draft.
+            </p>
           )}
         </CardContent>
       </Card>

@@ -52,6 +52,7 @@ export const campaigns = pgTable('campaigns', {
   sentAt: timestamp('sent_at', { withTimezone: true }),
   totalRecipients: integer('total_recipients'),
   cancelRequested: boolean('cancel_requested').notNull().default(false),
+  disableTracking: boolean('disable_tracking').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

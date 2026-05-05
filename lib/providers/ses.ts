@@ -1,6 +1,60 @@
-import { SESClient, SendEmailCommand, GetAccountSendingEnabledCommand } from '@aws-sdk/client-ses'
+import { SESClient, SendRawEmailCommand, GetAccountSendingEnabledCommand } from '@aws-sdk/client-ses'
+import { randomBytes } from 'crypto'
 import type { EmailProviderAdapter, SendOptions, ProviderConfig } from './types'
 import { logger, trackEvent, trackError } from '@/lib/logger'
+
+const CRLF = '\r\n'
+
+function hasNonAscii(value: string): boolean {
+  return /[^\x20-\x7e]/.test(value)
+}
+
+function encodeHeaderValue(value: string): string {
+  if (!hasNonAscii(value)) return value
+  return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`
+}
+
+function encodeAddress(name: string, email: string): string {
+  if (!name) return email
+  const encoded = encodeHeaderValue(name)
+  return `${encoded} <${email}>`
+}
+
+function buildRawMime(options: SendOptions): string {
+  const boundary = `----=_HedwigMail_${randomBytes(12).toString('hex')}`
+  const headers: Record<string, string> = {
+    From: encodeAddress(options.fromName, options.from),
+    To: options.to,
+    Subject: encodeHeaderValue(options.subject),
+    'MIME-Version': '1.0',
+    'Content-Type': `multipart/alternative; boundary="${boundary}"`,
+    ...(options.headers || {}),
+  }
+
+  const headerLines = Object.entries(headers)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(CRLF)
+
+  const textPart = options.text ?? ''
+  const htmlPart = options.html
+
+  const body = [
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(textPart, 'utf8').toString('base64').replace(/(.{76})/g, `$1${CRLF}`),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(htmlPart, 'utf8').toString('base64').replace(/(.{76})/g, `$1${CRLF}`),
+    `--${boundary}--`,
+    '',
+  ].join(CRLF)
+
+  return `${headerLines}${CRLF}${CRLF}${body}`
+}
 
 export class SESAdapter implements EmailProviderAdapter {
   private client: SESClient
@@ -18,21 +72,14 @@ export class SESAdapter implements EmailProviderAdapter {
 
   async send(options: SendOptions): Promise<{ messageId: string }> {
     const startTime = Date.now()
-    logger.info({ to: options.to, from: options.from, subject: options.subject }, 'SES: sending email')
+    logger.info({ to: options.to, from: options.from, subject: options.subject, headerKeys: Object.keys(options.headers || {}) }, 'SES: sending email')
 
     try {
-      const result = await this.client.send(new SendEmailCommand({
+      const rawMessage = buildRawMime(options)
+      const result = await this.client.send(new SendRawEmailCommand({
         Source: `${options.fromName} <${options.from}>`,
-        Destination: { ToAddresses: [options.to] },
-        Message: {
-          Subject: { Data: options.subject, Charset: 'UTF-8' },
-          Body: {
-            Html: { Data: options.html, Charset: 'UTF-8' },
-            ...(options.text
-              ? { Text: { Data: options.text, Charset: 'UTF-8' } }
-              : {}),
-          },
-        },
+        Destinations: [options.to],
+        RawMessage: { Data: Buffer.from(rawMessage, 'utf8') },
       }))
 
       const durationMs = Date.now() - startTime
