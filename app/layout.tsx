@@ -17,8 +17,17 @@ const body = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "hedwig-mail",
+  title: "hedwig",
   description: "Self-hosted broadcast email tool",
+  icons: {
+    icon: [
+      { url: "/assets/logo/favicon-sm.png", sizes: "32x32", type: "image/png" },
+      { url: "/assets/logo/favicon-md.png", sizes: "64x64", type: "image/png" },
+      { url: "/assets/logo/favicon-lg.png", sizes: "128x128", type: "image/png" },
+      { url: "/assets/logo/favicon-xl.png", sizes: "256x256", type: "image/png" },
+    ],
+    apple: "/assets/logo/favicon-xl.png",
+  },
 }
 
 export default function RootLayout({

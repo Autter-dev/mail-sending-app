@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useState } from "react"
+import Image from "next/image"
 import { signIn } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -48,13 +49,14 @@ function LoginForm() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold font-heading text-foreground">hedwig-mail</h1>
+          <Image
+            src="/assets/logo/primary-logo.png"
+            alt="hedwig"
+            width={240}
+            height={104}
+            priority
+            className="mx-auto mb-4 h-20 w-auto dark:invert"
+          />
           <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
         </div>
 

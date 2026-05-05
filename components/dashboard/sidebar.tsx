@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
@@ -186,13 +187,22 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex items-center gap-2 px-6 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
-        </div>
-        <span className="text-lg font-bold font-heading text-foreground">hedwig-mail</span>
+        <Image
+          src="/assets/logo/favicon-md.png"
+          alt="hedwig"
+          width={32}
+          height={32}
+          priority
+          className="h-8 w-8 rounded-lg"
+        />
+        <Image
+          src="/assets/logo/wordmark.png"
+          alt="hedwig"
+          width={96}
+          height={28}
+          priority
+          className="h-7 w-auto dark:invert"
+        />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">

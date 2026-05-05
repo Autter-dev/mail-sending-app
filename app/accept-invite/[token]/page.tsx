@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
@@ -21,7 +22,7 @@ export default function AcceptInvitePage() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
 
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'hedwig-mail'
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'hedwig'
 
   useEffect(() => {
     if (!token) return
@@ -192,25 +193,14 @@ function Layout({ appName, children }: { appName: string; children: React.ReactN
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card rounded-xl shadow-warm border p-8 text-center">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="hsl(var(--primary-foreground))"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-6">
-            {appName}
-          </p>
+          <Image
+            src="/assets/logo/primary-logo.png"
+            alt={appName}
+            width={200}
+            height={87}
+            priority
+            className="mx-auto mb-6 h-16 w-auto dark:invert"
+          />
           {children}
         </div>
       </div>

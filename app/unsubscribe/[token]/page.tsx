@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { contacts, lists, campaignSends, campaignEvents } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { suppressEmail } from '@/lib/suppressions'
 import { logAudit, systemAuditCtx } from '@/lib/audit'
@@ -84,7 +85,7 @@ export default async function UnsubscribePage({
   params: { token: string }
 }) {
   const { token } = params
-  const appName = process.env.APP_NAME || 'hedwig-mail'
+  const appName = process.env.APP_NAME || 'hedwig'
 
   // Validate UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -156,15 +157,14 @@ function UnsubscribeLayout({
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card rounded-xl shadow-warm border p-8 text-center">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-6">
-            {appName}
-          </p>
+          <Image
+            src="/assets/logo/primary-logo.png"
+            alt={appName}
+            width={200}
+            height={87}
+            priority
+            className="mx-auto mb-6 h-16 w-auto dark:invert"
+          />
           {children}
         </div>
       </div>

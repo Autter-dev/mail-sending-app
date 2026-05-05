@@ -14,7 +14,7 @@ export async function sendConfirmation(contactId: string): Promise<void> {
     throw new Error('APP_URL is not set')
   }
 
-  const appName = process.env.APP_NAME || 'hedwig-mail'
+  const appName = process.env.APP_NAME || 'hedwig'
 
   const row = await db
     .select({

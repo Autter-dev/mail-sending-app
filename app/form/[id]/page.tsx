@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { forms } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { FormClient } from './form-client'
 
@@ -20,7 +21,7 @@ export default async function HostedFormPage({
   if (!form) notFound()
 
   const embed = searchParams?.embed === '1'
-  const appName = process.env.APP_NAME || 'hedwig-mail'
+  const appName = process.env.APP_NAME || 'hedwig'
 
   if (embed) {
     return (
@@ -40,9 +41,14 @@ export default async function HostedFormPage({
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card rounded-xl shadow-warm border p-8">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">
-            {appName}
-          </p>
+          <Image
+            src="/assets/logo/primary-logo.png"
+            alt={appName}
+            width={180}
+            height={78}
+            priority
+            className="mb-4 h-12 w-auto dark:invert"
+          />
           <h1 className="text-xl font-semibold font-heading text-foreground mb-6">{form.name}</h1>
           <FormClient
             formId={form.id}
