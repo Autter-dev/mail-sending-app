@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { forms, lists } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { forms, lists, formSubmissions } from '@/lib/db/schema'
+import { eq, desc, sql } from 'drizzle-orm'
 import { createFormSchema } from '@/lib/validations/forms'
 import { auditFromSession, logAudit } from '@/lib/audit'
 
@@ -15,6 +15,7 @@ export async function GET() {
       doubleOptIn: forms.doubleOptIn,
       createdAt: forms.createdAt,
       updatedAt: forms.updatedAt,
+      submissionCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM ${formSubmissions} WHERE ${formSubmissions.formId} = ${forms.id}), 0)`,
     })
     .from(forms)
     .leftJoin(lists, eq(lists.id, forms.listId))
@@ -51,6 +52,10 @@ export async function POST(req: NextRequest) {
       confirmationTemplateJson: parsed.data.confirmationTemplateJson ?? [],
       successMessage: parsed.data.successMessage,
       redirectUrl: parsed.data.redirectUrl ?? null,
+      brandingLogoFileId: parsed.data.brandingLogoFileId ?? null,
+      brandingPrimaryColor: parsed.data.brandingPrimaryColor ?? null,
+      brandingBgColor: parsed.data.brandingBgColor ?? null,
+      brandingTextColor: parsed.data.brandingTextColor ?? null,
     })
     .returning()
 

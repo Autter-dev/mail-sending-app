@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
-import { contacts, forms } from '@/lib/db/schema'
+import { contacts, forms, formSubmissions } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { isSuppressed, normalizeEmail } from '@/lib/suppressions'
 import { consumeIpToken, extractIp } from '@/lib/rate-limit/ip'
@@ -120,8 +120,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     { headers: CORS },
   )
 
+  const userAgent = req.headers.get('user-agent') || null
+  const submittedFields = payload.fields
+  async function recordSubmission(outcome: string, contactId: string | null) {
+    await db.insert(formSubmissions).values({
+      formId: form.id,
+      contactId,
+      email,
+      payload: submittedFields,
+      outcome,
+      ipAddress: ip || null,
+      userAgent,
+    })
+  }
+
   // Suppression: silently succeed without DB write or email send
   if (await isSuppressed(email)) {
+    await recordSubmission('suppressed', null)
     return successResponse
   }
 
@@ -135,7 +150,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (existing) {
     if (existing.status === 'unsubscribed' || existing.status === 'bounced') {
-      // Don't resurrect; respond with success silently
+      await recordSubmission('suppressed', existing.id)
       return successResponse
     }
     if (existing.status === 'pending' && form.doubleOptIn) {
@@ -153,9 +168,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
       const boss = await getQueue()
       await boss.send(JOBS.SEND_CONFIRMATION_EMAIL, { contactId: existing.id, formId: form.id }, { retryLimit: 3 })
+      await recordSubmission('pending', existing.id)
       return successResponse
     }
-    // active or pending without doubleOptIn: idempotent success
+    await recordSubmission('duplicate', existing.id)
     return successResponse
   }
 
@@ -176,16 +192,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .returning()
 
     if (!created) {
-      // Lost a race; treat as idempotent success
+      await recordSubmission('duplicate', null)
       return successResponse
     }
 
     const boss = await getQueue()
     await boss.send(JOBS.SEND_CONFIRMATION_EMAIL, { contactId: created.id, formId: form.id }, { retryLimit: 3 })
+    await recordSubmission('pending', created.id)
     return successResponse
   }
 
-  await db
+  const [created] = await db
     .insert(contacts)
     .values({
       listId: form.listId,
@@ -196,6 +213,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       status: 'active',
     })
     .onConflictDoNothing({ target: [contacts.listId, contacts.email] })
+    .returning()
 
+  await recordSubmission(created ? 'created' : 'duplicate', created?.id ?? null)
   return successResponse
 }

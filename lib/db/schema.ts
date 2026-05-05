@@ -184,9 +184,27 @@ export const forms = pgTable('forms', {
   confirmationTemplateJson: jsonb('confirmation_template_json').notNull().default([]).$type<Block[]>(),
   successMessage: text('success_message').notNull().default('Thanks for subscribing.'),
   redirectUrl: text('redirect_url'),
+  brandingLogoFileId: text('branding_logo_file_id'),
+  brandingPrimaryColor: text('branding_primary_color'),
+  brandingBgColor: text('branding_bg_color'),
+  brandingTextColor: text('branding_text_color'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const formSubmissions = pgTable('form_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  formId: uuid('form_id').notNull().references(() => forms.id, { onDelete: 'cascade' }),
+  contactId: uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  email: text('email').notNull(),
+  payload: jsonb('payload').notNull().default({}).$type<Record<string, string>>(),
+  outcome: text('outcome').notNull(), // created | updated | duplicate | suppressed | pending
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  formCreatedIdx: index('form_submissions_form_created_idx').on(t.formId, t.createdAt),
+}))
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -244,6 +262,7 @@ export type AuditLog = typeof auditLogs.$inferSelect
 export type Asset = typeof assets.$inferSelect
 export type Template = typeof templates.$inferSelect
 export type Form = typeof forms.$inferSelect
+export type FormSubmission = typeof formSubmissions.$inferSelect
 export type AppSettings = typeof appSettings.$inferSelect
 export type User = typeof users.$inferSelect
 export type TeamInvite = typeof teamInvites.$inferSelect

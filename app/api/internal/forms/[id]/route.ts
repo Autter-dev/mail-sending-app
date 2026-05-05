@@ -39,6 +39,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       confirmationTemplateJson: parsed.data.confirmationTemplateJson ?? [],
       successMessage: parsed.data.successMessage,
       redirectUrl: parsed.data.redirectUrl ?? null,
+      brandingLogoFileId: parsed.data.brandingLogoFileId ?? null,
+      brandingPrimaryColor: parsed.data.brandingPrimaryColor ?? null,
+      brandingBgColor: parsed.data.brandingBgColor ?? null,
+      brandingTextColor: parsed.data.brandingTextColor ?? null,
       updatedAt: new Date(),
     })
     .where(eq(forms.id, params.id))

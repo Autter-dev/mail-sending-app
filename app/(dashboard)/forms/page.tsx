@@ -33,6 +33,7 @@ interface FormRow {
   listName: string | null
   doubleOptIn: boolean
   createdAt: string
+  submissionCount: number
 }
 
 interface ListOption {
@@ -205,6 +206,7 @@ export default function FormsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>List</TableHead>
                 <TableHead>Double opt-in</TableHead>
+                <TableHead>Submissions</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -224,6 +226,14 @@ export default function FormsPage() {
                     ) : (
                       <Badge variant="outline">Off</Badge>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/forms/${row.id}/submissions`}
+                      className="font-medium hover:underline"
+                    >
+                      {row.submissionCount}
+                    </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {format(new Date(row.createdAt), 'MMM d, yyyy')}

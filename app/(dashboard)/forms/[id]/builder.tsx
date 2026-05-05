@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import type { Block, Form, FormField, FormFieldType } from '@/lib/db/schema'
 import { BlockEditor } from '@/components/editor/BlockEditor'
+import { AssetPicker } from '@/components/editor/AssetPicker'
 
 interface ListOption { id: string; name: string }
 interface ProviderOption { id: string; name: string; isDefault: boolean }
@@ -21,6 +22,49 @@ interface BuilderProps {
   lists: ListOption[]
   providers: ProviderOption[]
   appUrl: string
+}
+
+function ColorRow({
+  label,
+  hint,
+  value,
+  onChange,
+}: {
+  label: string
+  hint?: string
+  value: string | null
+  onChange: (v: string | null) => void
+}) {
+  const hex = value ?? ''
+  return (
+    <div className="rounded-lg border bg-card p-4 space-y-2">
+      <Label>{label}</Label>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={hex || '#000000'}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded border border-input bg-transparent p-0.5"
+        />
+        <Input
+          value={hex}
+          placeholder="Theme default"
+          onChange={(e) => {
+            const v = e.target.value.trim()
+            if (v === '') onChange(null)
+            else onChange(v)
+          }}
+          className="font-mono"
+        />
+        {value && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
+            Reset
+          </Button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function slugify(s: string): string {
@@ -47,6 +91,11 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
   )
   const [successMessage, setSuccessMessage] = useState(form.successMessage)
   const [redirectUrl, setRedirectUrl] = useState(form.redirectUrl ?? '')
+  const [brandingLogoFileId, setBrandingLogoFileId] = useState<string | null>(form.brandingLogoFileId ?? null)
+  const [brandingPrimaryColor, setBrandingPrimaryColor] = useState<string | null>(form.brandingPrimaryColor ?? null)
+  const [brandingBgColor, setBrandingBgColor] = useState<string | null>(form.brandingBgColor ?? null)
+  const [brandingTextColor, setBrandingTextColor] = useState<string | null>(form.brandingTextColor ?? null)
+  const [logoPickerOpen, setLogoPickerOpen] = useState(false)
   const [fields, setFields] = useState<FormField[]>(
     Array.isArray(form.fields) && form.fields.length > 0
       ? form.fields
@@ -102,6 +151,10 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
           confirmationTemplateJson,
           successMessage,
           redirectUrl: redirectUrl.trim() || null,
+          brandingLogoFileId,
+          brandingPrimaryColor,
+          brandingBgColor,
+          brandingTextColor,
         }),
       })
       if (!res.ok) {
@@ -154,9 +207,8 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
             <TabsList>
               <TabsTrigger value="fields">Fields</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
-              <TabsTrigger value="confirmation" disabled={!doubleOptIn}>
-                Confirmation Email
-              </TabsTrigger>
+              <TabsTrigger value="confirmation">Confirmation Email</TabsTrigger>
+              <TabsTrigger value="branding">Branding</TabsTrigger>
             </TabsList>
 
             <TabsContent value="fields" className="space-y-3 pt-4">
@@ -317,6 +369,11 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
             </TabsContent>
 
             <TabsContent value="confirmation" className="space-y-4 pt-4">
+              {!doubleOptIn && (
+                <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Sent only when &ldquo;Require email confirmation (double opt-in)&rdquo; is enabled in Settings. You can design it now and turn it on later.
+                </div>
+              )}
               <div>
                 <Label>Confirmation subject</Label>
                 <Input
@@ -336,16 +393,97 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
                 />
               </div>
             </TabsContent>
+
+            <TabsContent value="branding" className="space-y-4 pt-4">
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <Label>Logo</Label>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-16 w-32 rounded border bg-muted/30 flex items-center justify-center overflow-hidden"
+                  >
+                    {brandingLogoFileId ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/img/${brandingLogoFileId}`}
+                        alt="Logo"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Default logo</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setLogoPickerOpen(true)}
+                    >
+                      Choose from library
+                    </Button>
+                    {brandingLogoFileId && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBrandingLogoFileId(null)}
+                      >
+                        Use default logo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <AssetPicker
+                  open={logoPickerOpen}
+                  onOpenChange={setLogoPickerOpen}
+                  kind="image"
+                  onSelect={(asset) => setBrandingLogoFileId(asset.fileId)}
+                />
+              </div>
+
+              <ColorRow
+                label="Primary color"
+                hint="Used for the submit button."
+                value={brandingPrimaryColor}
+                onChange={setBrandingPrimaryColor}
+              />
+              <ColorRow
+                label="Background color"
+                hint="Page background behind the form card."
+                value={brandingBgColor}
+                onChange={setBrandingBgColor}
+              />
+              <ColorRow
+                label="Heading and text color"
+                hint="Form title and field labels."
+                value={brandingTextColor}
+                onChange={setBrandingTextColor}
+              />
+            </TabsContent>
           </Tabs>
         </div>
 
         <div className="space-y-4">
           <div className="rounded-lg border bg-card p-4 space-y-3">
             <h3 className="text-sm font-medium">Preview</h3>
-            <div className="rounded-md bg-muted/50 p-3 space-y-2 text-sm">
+            <div
+              className="rounded-md p-3 space-y-2 text-sm"
+              style={{
+                backgroundColor: brandingBgColor ?? undefined,
+                color: brandingTextColor ?? undefined,
+              }}
+            >
+              {brandingLogoFileId && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/img/${brandingLogoFileId}`}
+                  alt=""
+                  className="mb-2 h-8 w-auto"
+                />
+              )}
               {previewFields.map((field) => (
                 <div key={field.id} className="space-y-1">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs" style={{ color: brandingTextColor ?? undefined }}>
                     {field.label}
                     {field.required ? ' *' : ''}
                   </div>
@@ -366,7 +504,11 @@ export function Builder({ form, lists, providers, appUrl }: BuilderProps) {
               ))}
               <button
                 disabled
-                className="rounded bg-primary px-3 py-1 text-xs text-primary-foreground opacity-70"
+                className="rounded px-3 py-1 text-xs opacity-80"
+                style={{
+                  backgroundColor: brandingPrimaryColor ?? 'hsl(var(--primary))',
+                  color: brandingPrimaryColor ? '#ffffff' : 'hsl(var(--primary-foreground))',
+                }}
               >
                 Subscribe
               </button>

@@ -30,7 +30,7 @@ export async function GET(
 
       db
         .select({
-          url: campaignEvents.linkUrl,
+          linkUrl: campaignEvents.linkUrl,
           count: sql<number>`cast(count(*) as int)`,
         })
         .from(campaignEvents)
@@ -64,10 +64,12 @@ export async function GET(
   const sendStats = sendStatsResult[0] ?? { sent: 0, bounced: 0, failed: 0 }
   const eventStats = eventStatsResult[0] ?? { opens: 0, clicks: 0 }
 
-  const topLinks = topLinksResult.map((row) => ({
-    url: row.url ?? '',
-    count: row.count,
-  }))
+  const topLinks = topLinksResult
+    .filter((row) => row.linkUrl)
+    .map((row) => ({
+      linkUrl: row.linkUrl as string,
+      count: row.count,
+    }))
 
   const timeline = timelineResult.map((row) => ({
     hour: row.hour,

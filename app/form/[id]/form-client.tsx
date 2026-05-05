@@ -9,9 +9,18 @@ interface Props {
   fields: FormField[]
   successMessage: string
   redirectUrl: string | null
+  primaryColor?: string | null
+  textColor?: string | null
 }
 
-export function FormClient({ formId, fields, successMessage, redirectUrl }: Props) {
+export function FormClient({
+  formId,
+  fields,
+  successMessage,
+  redirectUrl,
+  primaryColor,
+  textColor,
+}: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -57,10 +66,17 @@ export function FormClient({ formId, fields, successMessage, redirectUrl }: Prop
     )
   }
 
+  const buttonStyle = primaryColor
+    ? { backgroundColor: primaryColor, color: '#ffffff' }
+    : undefined
+  const buttonClass = primaryColor
+    ? 'inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60'
+    : 'inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60'
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {fields.map((field) => (
-        <FieldInput key={field.id} field={field} />
+        <FieldInput key={field.id} field={field} textColor={textColor} />
       ))}
       <input
         type="text"
@@ -74,7 +90,8 @@ export function FormClient({ formId, fields, successMessage, redirectUrl }: Prop
       <button
         type="submit"
         disabled={submitting}
-        className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        className={buttonClass}
+        style={buttonStyle}
       >
         {submitting ? 'Submitting...' : 'Subscribe'}
       </button>
@@ -83,7 +100,8 @@ export function FormClient({ formId, fields, successMessage, redirectUrl }: Prop
   )
 }
 
-function FieldInput({ field }: { field: FormField }) {
+function FieldInput({ field, textColor }: { field: FormField; textColor?: string | null }) {
+  const labelStyle = textColor ? { color: textColor } : undefined
   const labelText = `${field.label}${field.required ? ' *' : ''}`
   if (field.type === 'checkbox') {
     return (
@@ -95,14 +113,14 @@ function FieldInput({ field }: { field: FormField }) {
           required={field.required}
           className="h-4 w-4 rounded border border-input"
         />
-        <span>{labelText}</span>
+        <span style={labelStyle}>{labelText}</span>
       </label>
     )
   }
   if (field.type === 'select') {
     return (
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-foreground">{labelText}</span>
+        <span className="text-foreground" style={labelStyle}>{labelText}</span>
         <select
           name={field.key}
           required={field.required}

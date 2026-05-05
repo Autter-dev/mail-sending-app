@@ -104,6 +104,22 @@ const baseFormSchema = z.object({
     .max(2048)
     .nullable()
     .optional(),
+  brandingLogoFileId: z.string().min(1).max(64).nullable().optional(),
+  brandingPrimaryColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Color must be a 6-digit hex like #1a2b3c')
+    .nullable()
+    .optional(),
+  brandingBgColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Color must be a 6-digit hex like #1a2b3c')
+    .nullable()
+    .optional(),
+  brandingTextColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Color must be a 6-digit hex like #1a2b3c')
+    .nullable()
+    .optional(),
 })
 
 export const createFormSchema = baseFormSchema.superRefine((data, ctx) => {
