@@ -12,6 +12,7 @@ import { logAudit, systemAuditCtx } from './lib/audit'
 import { sql } from 'drizzle-orm'
 
 const APP_URL = process.env.APP_URL!
+const TRACKING_URL = (process.env.TRACKING_URL || process.env.APP_URL || '').replace(/\/$/, '')
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
 
 if (/localhost|127\.0\.0\.1/i.test(APP_URL)) {
@@ -86,11 +87,12 @@ async function processSendJob(sendId: string, campaignId: string) {
 
   const adapter = createProviderAdapter(provider.type, provider.configEncrypted)
 
+  const unsubscribeUrl = `${TRACKING_URL}/unsubscribe/${contact.unsubscribeToken}`
   const contactData: Record<string, string> = {
     email: contact.email,
     first_name: contact.firstName || '',
     last_name: contact.lastName || '',
-    unsubscribe_url: `${APP_URL}/unsubscribe/${contact.unsubscribeToken}`,
+    unsubscribe_url: unsubscribeUrl,
     ...(contact.metadata as Record<string, string>),
   }
 
@@ -108,7 +110,8 @@ async function processSendJob(sendId: string, campaignId: string) {
     contact: contactData,
     sendId: send.id,
     appUrl: APP_URL,
-    unsubscribeUrl: `${APP_URL}/unsubscribe/${contact.unsubscribeToken}`,
+    trackingUrl: TRACKING_URL,
+    unsubscribeUrl,
     rawHtml: campaign.templateHtml,
     disableTracking: campaign.disableTracking,
   })
@@ -132,7 +135,7 @@ async function processSendJob(sendId: string, campaignId: string) {
     html,
     text,
     headers: {
-      'List-Unsubscribe': `<${APP_URL}/unsubscribe/${contact.unsubscribeToken}>`,
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     },
   })

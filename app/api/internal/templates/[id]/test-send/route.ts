@@ -101,7 +101,8 @@ export async function POST(
 
     const adapter = createProviderAdapter(provider.type, provider.configEncrypted)
     const appUrl = process.env.APP_URL!
-    const testUnsubscribeUrl = `${appUrl}/unsubscribe/00000000-0000-0000-0000-000000000000`
+    const trackingUrl = (process.env.TRACKING_URL || appUrl).replace(/\/$/, '')
+    const testUnsubscribeUrl = `${trackingUrl}/unsubscribe/00000000-0000-0000-0000-000000000000`
 
     const sent: string[] = []
     const failed: { email: string; error: string }[] = []
@@ -113,6 +114,7 @@ export async function POST(
           contact: { email: recipient, first_name: 'Test', last_name: 'User', unsubscribe_url: testUnsubscribeUrl },
           sendId: 'test-' + Date.now(),
           appUrl,
+          trackingUrl,
           unsubscribeUrl: testUnsubscribeUrl,
           rawHtml: template.templateHtml,
         })

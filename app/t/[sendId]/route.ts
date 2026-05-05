@@ -3,10 +3,13 @@ import { db } from '@/lib/db'
 import { campaignSends, campaignEvents } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function GET(req: NextRequest, { params }: { params: { sendId: string } }) {
-  const send = await db.query.campaignSends.findFirst({
-    where: eq(campaignSends.id, params.sendId),
-  })
+  // Always return the pixel even on misses, but only hit the DB on well-formed IDs.
+  const send = UUID_RE.test(params.sendId)
+    ? await db.query.campaignSends.findFirst({ where: eq(campaignSends.id, params.sendId) })
+    : null
 
   if (send) {
     await db.insert(campaignEvents).values({

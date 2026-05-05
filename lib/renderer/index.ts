@@ -3,6 +3,7 @@ import juice from 'juice'
 import { convert as htmlToText } from 'html-to-text'
 import type { Block } from '@/lib/db/schema'
 import { logger } from '@/lib/logger'
+import { buildClickUrl } from '@/lib/tracking'
 
 export function renderBlocks(blocks: Block[]): string {
   logger.info({ blockCount: blocks.length, blockTypes: blocks.map(b => b?.type) }, 'renderBlocks: rendering blocks to HTML')
@@ -41,11 +42,13 @@ export function renderTemplate(options: {
   sendId: string
   appUrl: string
   unsubscribeUrl: string
+  trackingUrl?: string
   rawHtml?: string | null
   disableTracking?: boolean
   footerHtml?: string | null
 }): string {
   const { blocks, contact, sendId, appUrl, unsubscribeUrl, rawHtml, disableTracking, footerHtml } = options
+  const trackingUrl = options.trackingUrl || appUrl
 
   // Defensive: ensure blocks is an array
   const safeBlocks = Array.isArray(blocks) ? blocks : []
@@ -83,11 +86,11 @@ export function renderTemplate(options: {
   const merged = template(contact)
   logger.info({ sendId, mergedLength: merged.length, mergedPreview: merged.substring(0, 300) }, 'renderTemplate: after Handlebars merge')
 
-  const withTracking = disableTracking ? merged : wrapLinks(merged, sendId, appUrl)
+  const withTracking = disableTracking ? merged : wrapLinks(merged, sendId, trackingUrl)
 
   const trackingPixel = disableTracking
     ? ''
-    : `<img src="${appUrl}/t/${sendId}" width="1" height="1" border="0" style="display:block;" />`
+    : `<img src="${trackingUrl}/t/${sendId}" width="1" height="1" border="0" style="display:block;" />`
 
   const defaultUnsubscribeFooter = `
     <div style="text-align:center;padding:24px 0;font-family:sans-serif;font-size:12px;color:#9ca3af;">
@@ -149,15 +152,12 @@ export function renderPlainText(html: string): string {
   })
 }
 
-function wrapLinks(html: string, sendId: string, appUrl: string): string {
-  // Escape special regex characters in the appUrl
-  const escapedAppUrl = appUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+function wrapLinks(html: string, sendId: string, trackingUrl: string): string {
+  // Escape special regex characters in the trackingUrl
+  const escaped = trackingUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const pattern = new RegExp(
-    `href="((?!${escapedAppUrl}/r/|${escapedAppUrl}/unsubscribe/|#)[^"]+)"`,
+    `href="((?!${escaped}/r/|${escaped}/unsubscribe/|mailto:|tel:|#)[^"]+)"`,
     'g'
   )
-  return html.replace(pattern, (_, url) => {
-    const encoded = Buffer.from(JSON.stringify({ sendId, url })).toString('base64url')
-    return `href="${appUrl}/r/${encoded}"`
-  })
+  return html.replace(pattern, (_, url) => `href="${buildClickUrl(trackingUrl, sendId, url)}"`)
 }

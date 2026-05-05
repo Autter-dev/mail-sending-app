@@ -127,7 +127,8 @@ export async function POST(
 
     // Use a dummy but functional unsubscribe URL for test sends
     const appUrl = process.env.APP_URL!
-    const testUnsubscribeUrl = `${appUrl}/unsubscribe/00000000-0000-0000-0000-000000000000`
+    const trackingUrl = (process.env.TRACKING_URL || appUrl).replace(/\/$/, '')
+    const testUnsubscribeUrl = `${trackingUrl}/unsubscribe/00000000-0000-0000-0000-000000000000`
 
     if (/localhost|127\.0\.0\.1/i.test(appUrl)) {
       logger.warn(
@@ -146,6 +147,7 @@ export async function POST(
           contact: { email: recipient, first_name: 'Test', last_name: 'User', unsubscribe_url: testUnsubscribeUrl },
           sendId: 'test-' + Date.now(),
           appUrl,
+          trackingUrl,
           unsubscribeUrl: testUnsubscribeUrl,
           rawHtml: campaign.templateHtml,
           disableTracking: campaign.disableTracking,
