@@ -25,6 +25,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/worker.ts ./worker.ts
+COPY --from=builder /app/worker-entry.ts ./worker-entry.ts
+COPY --from=builder /app/web-entry.ts ./web-entry.ts
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
@@ -34,4 +36,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["sh", "-c", "node_modules/.bin/tsx lib/db/migrate.ts && node server.js"]
+CMD ["node", "-r", "tsx/cjs", "web-entry.ts"]

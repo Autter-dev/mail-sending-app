@@ -178,7 +178,7 @@ MINIO_ROOT_PASSWORD=<MINIO_PASSWORD>
 
 This repo uses a safe startup migration pattern:
 
-- `web` runs `lib/db/migrate.ts` before `server.js` in the Docker `CMD`.
+- `web` starts via `web-entry.ts`, runs migrations, runs checker `/health` self-check, then starts `server.js`.
 - `worker` should start with `worker-entry.ts`, which also runs `lib/db/migrate.ts` before loading `worker.ts`.
 - `lib/db/migrate.ts` takes a Postgres advisory lock, so concurrent boots from multiple services do not race.
 

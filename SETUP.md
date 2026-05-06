@@ -215,7 +215,7 @@ Railway runs the app and worker as separate services backed by a managed Postgre
    - **Start Command**: `node -r tsx/cjs worker-entry.ts`
    - **Variables**: reference the same Postgres `DATABASE_URL` and copy across `ENCRYPTION_KEY`, `APP_URL`, the `S3_*` vars, checker vars (`EMAIL_CHECKER_BASE_URL`, optional `EMAIL_CHECKER_API_SECRET`, optional `EMAIL_CHECKER_TIMEOUT_MS`, optional `HIBP_API_KEY`), and `WORKER_CONCURRENCY`. Use Railway's variable references so updates flow to both services.
 
-5. **Migrations are startup-safe.** The app Docker `CMD` runs migrations before boot, and `worker-entry.ts` does the same for the worker. Migration execution uses a Postgres advisory lock, so concurrent deploys from app and worker cannot race.
+5. **Startup checks are built in.** `web-entry.ts` (app) and `worker-entry.ts` (worker) both run migrations before boot and run a checker `/health` self-check (`EMAIL_CHECKER_BASE_URL`) with clear startup logs. Migration execution uses a Postgres advisory lock, so concurrent deploys from app and worker cannot race.
 
 6. **Optional manual migration.** Easiest path: from your local machine with the Railway CLI:
 
