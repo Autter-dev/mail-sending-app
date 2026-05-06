@@ -57,6 +57,10 @@ Public REST equivalents under `/api/v1/lists` are documented in [public-api.md](
 
 Imports, API-created contacts, and the worker backfill enqueue `verify-contact-email` jobs. The **worker** runs probes with a minimum gap between completed checks (`EMAIL_VERIFY_MIN_GAP_MS`, default 2500) and low parallel concurrency per process (`EMAIL_VERIFY_WORKER_CONCURRENCY`, default 1, max 4) so recipient MX infrastructure is not flooded. Set `EMAIL_VERIFY_MIN_GAP_MS=0` only if you accept a much faster, more aggressive pace.
 
+Startup backfill is enabled by default and queues checks for contacts missing a prior verification timestamp. Set `EMAIL_VERIFY_BACKFILL_ON_START=false` to disable it. `EMAIL_VERIFY_BACKFILL_MAX` caps how many contacts are enqueued at worker boot.
+
 Optional `EMAIL_VERIFY_ENQUEUE_STAGGER_MS` spreads job `startAfter` times when bulk-enqueueing or during startup backfill (default 0: jobs become eligible immediately; pacing still comes from the worker).
 
-Dashboard **Settings > Bounces** stores the SMTP MAIL FROM and hello name used for those checks (and for manual list email checks). See [public-api.md](public-api.md) for the public `email-check` endpoint, which runs on demand and is separate from the background queue.
+The checker is integrated into this app as TypeScript code under `lib/email-checker/*`. It does not use legacy `WQ_*` environment variables.
+
+Dashboard **Settings > Bounces** stores the SMTP MAIL FROM and hello name used for background checks and manual checks. Those values are read from app settings via `getEmailVerifySmtpIdentity()`. See [public-api.md](public-api.md) for the public `email-check` endpoint, which runs on demand and is separate from the background queue.

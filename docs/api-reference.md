@@ -195,7 +195,13 @@ Session-authenticated, used by the dashboard UI. Not part of the public contract
 
 ## Email verification (background worker)
 
-Queued checks use the `verify-contact-email` job in `worker.ts`. Pacing is controlled with environment variables documented in `.env.example` and `lib/email-verify-rate.ts`: minimum gap after each SMTP probe (`EMAIL_VERIFY_MIN_GAP_MS`), worker-side concurrency (`EMAIL_VERIFY_WORKER_CONCURRENCY`), optional staggered scheduling on bulk enqueue and backfill (`EMAIL_VERIFY_ENQUEUE_STAGGER_MS`), plus existing SMTP timeouts and retries. Manual `POST /api/internal/lists/[id]/email-check` and `POST /api/v1/email-check` invoke the checker in the requesting process and do not use that queue.
+Queued checks use the `verify-contact-email` job in `worker.ts`. Pacing is controlled with environment variables documented in `.env.example` and `lib/email-verify-rate.ts`: minimum gap after each SMTP probe (`EMAIL_VERIFY_MIN_GAP_MS`), worker-side concurrency (`EMAIL_VERIFY_WORKER_CONCURRENCY`), optional staggered scheduling on bulk enqueue and backfill (`EMAIL_VERIFY_ENQUEUE_STAGGER_MS`), plus existing SMTP timeouts and retries.
+
+Startup backfill is enabled by default for unverified contacts and can be disabled with `EMAIL_VERIFY_BACKFILL_ON_START=false`. Use `EMAIL_VERIFY_BACKFILL_MAX` to cap startup enqueue volume.
+
+Manual `POST /api/internal/lists/[id]/email-check` and `POST /api/v1/email-check` invoke the checker in the requesting process and do not use that queue. These checks use the SMTP identity configured in **Settings > Bounces**.
+
+Checker implementation is integrated TypeScript (`lib/email-checker/*`) and does not depend on legacy `WQ_*` environment variables. Optional `HIBP_API_KEY` enriches the `misc.haveibeenpwned` signal.
 
 ---
 

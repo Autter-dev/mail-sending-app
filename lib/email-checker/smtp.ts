@@ -251,6 +251,7 @@ export interface CheckSmtpConfig {
   domain: string
   smtpPort: number
   smtpTimeoutMs: number
+  proxy?: unknown
   helloName: string
   fromEmail: string
   retries: number

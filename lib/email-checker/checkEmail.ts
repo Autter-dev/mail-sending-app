@@ -82,17 +82,23 @@ export async function checkEmail(rawInput: CheckEmailInput = { to_email: '' }): 
   const envRetries = parseInt(process.env.EMAIL_VERIFY_RETRIES || '1', 10)
   const envPort = parseInt(process.env.EMAIL_VERIFY_SMTP_PORT || '25', 10)
 
-  const backendName = rawInput.backend_name || process.env.EMAIL_VERIFY_BACKEND_NAME || 'hedwig-mail'
+  const backendName =
+    rawInput.backend_name ||
+    process.env.EMAIL_VERIFY_BACKEND_NAME ||
+    'hedwig-mail'
   const fromEmail =
     rawInput.from_email ||
     process.env.EMAIL_VERIFY_FROM_EMAIL ||
     process.env.EMAIL_FROM ||
     'noreply@localhost'
-  const helloName = rawInput.hello_name || process.env.EMAIL_VERIFY_HELLO_NAME || 'localhost'
+  const helloName =
+    rawInput.hello_name ||
+    process.env.EMAIL_VERIFY_HELLO_NAME ||
+    'localhost'
   const smtpPort = Number(rawInput.smtp_port || envPort || 25)
   const retries = Number(rawInput.retries ?? (Number.isFinite(envRetries) ? envRetries : 1))
   const haveibeenpwnedApiKey =
-    rawInput.haveibeenpwned_api_key ?? process.env.WQ_HIBP_API_KEY ?? process.env.HIBP_API_KEY ?? null
+    rawInput.haveibeenpwned_api_key ?? process.env.HIBP_API_KEY ?? null
 
   const input = {
     to_email: String(rawInput.to_email || '').trim(),
@@ -215,6 +221,7 @@ export async function checkEmail(rawInput: CheckEmailInput = { to_email: '' }): 
     domain: syntax.domain,
     smtpPort: input.smtp_port,
     smtpTimeoutMs: resolveSmtpTimeoutMs(input as CheckEmailInput, hasTimeoutRule),
+    proxy: input.proxy,
     helloName: input.hello_name,
     fromEmail: input.from_email,
     retries: input.retries,
