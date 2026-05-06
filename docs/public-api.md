@@ -63,9 +63,7 @@ New contacts from the bulk or single-contact endpoints are queued for background
 
 Background verification runs in the **worker** (`verify-contact-email` queue). Throughput is intentionally limited so MX checks do not look like abuse: a configurable minimum delay after each probe (`EMAIL_VERIFY_MIN_GAP_MS`, default 2500 ms), one concurrent verify per worker process by default (`EMAIL_VERIFY_WORKER_CONCURRENCY`, max 4), and an optional enqueue stagger (`EMAIL_VERIFY_ENQUEUE_STAGGER_MS`, default 0) for large batches and backfill. The synchronous `POST /api/v1/email-check` call is not queued; it runs immediately when you call it and is still subject to per-API-key rate limits.
 
-SMTP identity for checks comes from **Settings > Bounces** (MAIL FROM and hello name). The checker itself is integrated TypeScript code in this app (`lib/email-checker/*`), not an external or legacy WQ service.
-
-`HIBP_API_KEY` is optional. If set, the checker queries Have I Been Pwned and includes the breach signal in `result.misc.haveibeenpwned` (`true`, `false`, or `null` on unavailable/error).
+SMTP identity for checks comes from **Settings > Bounces** (MAIL FROM and hello name). This app calls an external checker API (`EMAIL_CHECKER_BASE_URL`, endpoint `/v1/check_email`) through the local TypeScript client in `lib/email-checker/checkEmail.ts`.
 
 ### Campaigns
 

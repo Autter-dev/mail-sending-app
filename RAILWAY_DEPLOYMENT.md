@@ -97,6 +97,7 @@ Replace:
 - `<ADMIN_EMAIL>` and `<ADMIN_PASSWORD>` with your admin login
 - `<MINIO_PASSWORD>` with the password you set in minio service
 - `<MINIO_INTERNAL_HOST>` with your minio private host in Railway network
+- `<CHECKER_BASE_URL>` with your email checker service base URL (for example `https://checker.yourdomain.com`)
 
 ### 5A) `web` service env vars
 
@@ -120,6 +121,10 @@ S3_FORCE_PATH_STYLE=true
 
 ENCRYPTION_KEY=<ENCRYPTION_KEY>
 WORKER_CONCURRENCY=5
+EMAIL_CHECKER_BASE_URL=<CHECKER_BASE_URL>
+# EMAIL_CHECKER_API_SECRET=<CHECKER_API_SECRET>
+# EMAIL_CHECKER_TIMEOUT_MS=30000
+# HIBP_API_KEY=<HIBP_API_KEY>
 NODE_ENV=production
 ```
 
@@ -155,6 +160,10 @@ S3_FORCE_PATH_STYLE=true
 
 ENCRYPTION_KEY=<ENCRYPTION_KEY>
 WORKER_CONCURRENCY=5
+EMAIL_CHECKER_BASE_URL=<CHECKER_BASE_URL>
+# EMAIL_CHECKER_API_SECRET=<CHECKER_API_SECRET>
+# EMAIL_CHECKER_TIMEOUT_MS=30000
+# HIBP_API_KEY=<HIBP_API_KEY>
 NODE_ENV=production
 ```
 
