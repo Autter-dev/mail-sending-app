@@ -11,12 +11,12 @@ const INSERT_CHUNK = 400
 
 /**
  * Enqueues VERIFY_CONTACT_EMAIL for contacts that have never been scanned
- * (no _email_verify_checked_at in metadata). Gated by EMAIL_VERIFY_BACKFILL_ON_START.
+ * (no _email_verify_checked_at in metadata). Enabled by default, can be disabled with EMAIL_VERIFY_BACKFILL_ON_START=false.
  * Intended for Railway worker deploy so existing lists are verified without a manual job.
  */
 export async function runEmailVerifyBackfillOnWorkerStart(boss: PgBoss): Promise<number> {
-  const flag = process.env.EMAIL_VERIFY_BACKFILL_ON_START
-  if (flag !== 'true' && flag !== '1') {
+  const flag = (process.env.EMAIL_VERIFY_BACKFILL_ON_START || '').trim().toLowerCase()
+  if (flag === 'false' || flag === '0' || flag === 'off' || flag === 'no') {
     return 0
   }
 

@@ -7,6 +7,7 @@ import { isSuppressed, normalizeEmail } from '@/lib/suppressions'
 import { consumeIpToken, extractIp } from '@/lib/rate-limit/ip'
 import { getQueue, JOBS } from '@/lib/queue'
 import type { FormField } from '@/lib/db/schema'
+import { enqueueContactEmailVerification } from '@/lib/email-verify'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -198,6 +199,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const boss = await getQueue()
     await boss.send(JOBS.SEND_CONFIRMATION_EMAIL, { contactId: created.id, formId: form.id }, { retryLimit: 3 })
+    await enqueueContactEmailVerification([created.id])
     await recordSubmission('pending', created.id)
     return successResponse
   }
@@ -215,6 +217,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .onConflictDoNothing({ target: [contacts.listId, contacts.email] })
     .returning()
 
+  if (created) {
+    await enqueueContactEmailVerification([created.id])
+  }
   await recordSubmission(created ? 'created' : 'duplicate', created?.id ?? null)
   return successResponse
 }

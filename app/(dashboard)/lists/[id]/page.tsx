@@ -67,6 +67,8 @@ interface ContactsMeta {
 
 type TabStatus = 'active' | 'pending' | 'bounced' | 'unsubscribed' | 'undeliverable'
 type TabValue = TabStatus | 'duplicates' | 'email-check'
+const primaryStatusTabs: TabStatus[] = ['active', 'pending', 'bounced', 'unsubscribed']
+const separateStatusTabs: TabStatus[] = ['undeliverable']
 
 export default function ListDetailPage() {
   const params = useParams() as { id: string }
@@ -493,12 +495,6 @@ export default function ListDetailPage() {
               {listInfo?.counts.bounced ?? 0}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="undeliverable">
-            Undeliverable
-            <Badge variant="secondary" className="ml-2">
-              {listInfo?.counts.undeliverable ?? 0}
-            </Badge>
-          </TabsTrigger>
           <TabsTrigger value="unsubscribed">
             Unsubscribed
             <Badge variant="secondary" className="ml-2">
@@ -517,7 +513,16 @@ export default function ListDetailPage() {
           <TabsTrigger value="email-check">Email Checker</TabsTrigger>
         </TabsList>
 
-        {(['active', 'pending', 'bounced', 'undeliverable', 'unsubscribed'] as TabStatus[]).map((tab) => (
+        <TabsList className="mt-2">
+          <TabsTrigger value="undeliverable">
+            Undeliverable
+            <Badge variant="secondary" className="ml-2">
+              {listInfo?.counts.undeliverable ?? 0}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        {[...primaryStatusTabs, ...separateStatusTabs].map((tab) => (
           <TabsContent key={tab} value={tab} className="space-y-4">
             {/* Search bar */}
             <div className="flex items-center gap-2">

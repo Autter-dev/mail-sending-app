@@ -120,8 +120,9 @@ export default function BouncesSettingsPage() {
 
           <p className="text-xs text-muted-foreground space-y-2">
             <span className="block">
-              Worker: EMAIL_VERIFY_BACKFILL_ON_START=true (and optionally EMAIL_VERIFY_BACKFILL_MAX) queues
-              VERIFY_CONTACT_EMAIL for contacts missing a verification timestamp when the worker starts.
+              Worker startup backfill is enabled by default and queues VERIFY_CONTACT_EMAIL for contacts missing a
+              verification timestamp. Set EMAIL_VERIFY_BACKFILL_ON_START=false to disable, and tune
+              EMAIL_VERIFY_BACKFILL_MAX to cap enqueue volume.
             </span>
             <span className="block">
               Throttle probes with EMAIL_VERIFY_MIN_GAP_MS (default 2500), EMAIL_VERIFY_WORKER_CONCURRENCY (default 1,
