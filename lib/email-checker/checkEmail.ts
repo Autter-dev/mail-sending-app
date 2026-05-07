@@ -16,6 +16,14 @@ function getCheckerApiSecret(): string {
   return secret
 }
 
+function getSmtpPort(rawInput: CheckEmailInput): number {
+  if (typeof rawInput.smtp_port === 'number' && Number.isFinite(rawInput.smtp_port) && rawInput.smtp_port > 0) {
+    return rawInput.smtp_port
+  }
+  const envPort = parseInt(process.env.EMAIL_VERIFY_SMTP_PORT || '587', 10)
+  return Number.isFinite(envPort) && envPort > 0 ? envPort : 587
+}
+
 export async function checkEmail(rawInput: CheckEmailInput = { to_email: '' }): Promise<CheckEmailResult> {
   const baseUrl = getCheckerBaseUrl()
   const apiSecret = getCheckerApiSecret()
