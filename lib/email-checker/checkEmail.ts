@@ -41,6 +41,7 @@ export async function checkEmail(rawInput: CheckEmailInput = { to_email: '' }): 
 
   const payload = {
     ...rawInput,
+    smtp_port: getSmtpPort(rawInput),
     haveibeenpwned_api_key:
       rawInput.haveibeenpwned_api_key ?? process.env.HIBP_API_KEY ?? undefined,
   }
