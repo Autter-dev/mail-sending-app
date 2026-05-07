@@ -8,7 +8,7 @@ Self-hostable broadcast email tool. Manage contact lists, design emails with a v
 
 > Sponsored by [Autter](https://autter.dev). Built and maintained as an open source project for the community.
 >
-> <a href="https://autter.dev"><picture><source media="(prefers-color-scheme: dark)" srcset="https://autter.dev/wordmark-light.png"><img src="https://autter.dev/wordmark-dark.png" alt="Autter" height="32" /></picture></a>
+> <a href="https://autter.dev"><picture><source media="(prefers-color-scheme: dark)" srcset="https://autter.dev/wordmark-light.png"><img src="https://autter.dev/logo-light.png" alt="Autter" height="32" /></picture></a>
 
 ## Features
 
